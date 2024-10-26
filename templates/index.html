@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Risk Assessment Predictor</title>
+    <style>
+        /* Main Page Styling */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f3f3f3;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background-color: #fff;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+        h2, h3 { text-align: center; color: #333; }
+        label { display: block; margin-top: 10px; color: #555; }
+        select, input, button {
+            width: 100%; padding: 10px; margin-top: 5px;
+            border-radius: 4px; border: 1px solid #ddd;
+        }
+        button {
+            background-color: #4CAF50; color: white; font-size: 16px; cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover { background-color: #45a049; }
+        .result { margin-top: 20px; padding: 10px; background-color: #eaf1f4; border-radius: 4px; }
+        .tab-buttons { display: flex; justify-content: space-around; margin-top: 20px; }
+        .tab-button {
+            padding: 10px 20px; background-color: #ddd; border: none;
+            border-radius: 4px; cursor: pointer; transition: background-color 0.3s; color: #333;
+        }
+        .tab-button.active { background-color: #4CAF50; color: white; }
+        .section { display: none; padding-top: 20px; }
+        .section.active { display: block; }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h2>Natural Disaster Risk Assessment</h2>
+
+        <!-- Tab Navigation for Main Sections -->
+        <div class="tab-buttons">
+            <button class="tab-button active" onclick="showSection('recognition')">Recognition</button>
+            <button class="tab-button" onclick="showSection('recovery')">Response</button>
+            <button class="tab-button" onclick="showSection('response')">Recovery</button>
+        </div>
+
+        <!-- Recognition Section -->
+        <div id="recognition" class="section active">
+            <h3>Risk Score Calculations</h3>
+            <div class="tab-buttons">
+                <button class="tab-button active" onclick="showForm('base')">Base Risk Score</button>
+                <button class="tab-button" onclick="showForm('predictive')">Predictive Risk Score</button>
+            </div>
+
+            <!-- Base Risk Score Form -->
+            <div id="base" class="section active">
+                <form id="base-risk-form">
+                    <label for="state">State:</label>
+                    <select name="state" id="state" required>
+                        <option value="" disabled selected>Select a state</option>
+                        {% for state in states %}
+                            <option value="{{ state }}">{{ state }}</option>
+                        {% endfor %}
+                    </select>
+
+                    <label for="county">County:</label>
+                    <select name="county" id="county" required>
+                        <option value="" disabled selected>Select a county</option>
+                        {% for county in counties %}
+                            <option value="{{ county }}">{{ county }}</option>
+                        {% endfor %}
+                    </select>
+
+                    <label for="disaster">Type of Natural Disaster:</label>
+                    <select name="disaster" id="disaster" required>
+                        <option value="" disabled selected>Select a disaster type</option>
+                        {% for disaster in disaster_types %}
+                            <option value="{{ disaster }}">{{ disaster }}</option>
+                        {% endfor %}
+                    </select>
+
+                    <button type="button" onclick="calculateBaseRisk()">Calculate Base Risk</button>
+                    <div class="result" id="base-result"></div>
+                </form>
+            </div>
+
+            <!-- Predictive Risk Score Form -->
+            <div id="predictive" class="section">
+                <form id="predictive-risk-form">
+                    <label for="time">Future Period (Years):</label>
+                    <input type="range" id="time" name="time" min="0" max="50" oninput="updateTimeValue(this.value)">
+                    <span id="time-value">0</span> years
+
+                    <button type="button" onclick="calculatePredictiveRisk()">Calculate Predictive Risk</button>
+                    <div class="result" id="predictive-result"></div>
+
+                    <!-- Canvas for the chart -->
+                    <canvas id="predictiveChart" width="400" height="200"></canvas>
+                </form>
+            </div>
+        </div>
+
+        <!-- Recovery Section -->
+        <div id="recovery" class="section">
+            <h3>Recovery Guidance</h3>
+            <p>Resources and tips for recovering from natural disasters.</p>
+        </div>
+
+        <!-- Response Section -->
+        <div id="response" class="section">
+            <h3>Response Actions</h3>
+            <p>Immediate actions to take during a natural disaster.</p>
+        </div>
+    </div>
+
+    <script>
+        function showSection(sectionId) {
+            document.querySelectorAll('.section').forEach(section => section.classList.remove('active'));
+            document.getElementById(sectionId).classList.add('active');
+            document.querySelectorAll('.tab-button').forEach(button => button.classList.remove('active'));
+            document.querySelector(`button[onclick="showSection('${sectionId}')"]`).classList.add('active');
+        }
+
+        function showForm(formId) {
+            document.querySelectorAll('#recognition .section').forEach(section => section.classList.remove('active'));
+            document.getElementById(formId).classList.add('active');
+            document.querySelectorAll('.tab-buttons .tab-button').forEach(button => button.classList.remove('active'));
+            document.querySelector(`button[onclick="showForm('${formId}')"]`).classList.add('active');
+        }
+
+        let baseRiskScore;
+
+        async function calculateBaseRisk() {
+            const state = document.getElementById('state').value;
+            const county = document.getElementById('county').value;
+            const disaster = document.getElementById('disaster').value;
+
+            // Prepare the request data
+            const requestData = { state, county, disaster };
+
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                });
+
+                const data = await response.json();
+                baseRiskScore = data.risk_score;
+                document.getElementById("base-result").innerHTML = `Base Risk Score: ${data.risk_score} (Calculated for ${disaster} in ${county}, ${state})`;
+            } catch (error) {
+                console.error('Error calculating base risk:', error);
+            }
+        }
+
+
+        let predictiveChart;
+
+        function calculatePredictiveRisk() {
+            let years = document.getElementById('time').value;
+            document.getElementById("predictive-result").innerHTML = `Predictive Risk Score over ${years} years`;
+
+            // Generate sample risk scores for each year (replace with actual logic)
+            const riskScores = [];
+
+            for (let i = 0; i <= years; i++) {
+                let riskScore = baseRiskScore * Math.pow(1 + 0.036, i);
+                riskScores.push(parseFloat(riskScore.toFixed(2))); // Round to 2 decimal places for readability
+            }
+
+            // Generate year labels
+            const yearLabels = Array.from({ length: parseInt(years) + 1 }, (_, i) => i);
+
+            // If the chart already exists, destroy it before creating a new one
+            if (predictiveChart) {
+                predictiveChart.destroy();
+            }
+
+            // Create the chart
+            const ctx = document.getElementById('predictiveChart').getContext('2d');
+            predictiveChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: yearLabels,
+                    datasets: [{
+                        label: 'Predictive Risk Score',
+                        data: riskScores,
+                        borderColor: '#4CAF50',
+                        backgroundColor: 'rgba(76, 175, 80, 0.2)',
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: { title: { display: true, text: 'Years' }},
+                        y: { title: { display: true, text: 'Risk Score' }}
+                    },
+                    plugins: {
+                        legend: { display: true },
+                        tooltip: { mode: 'index', intersect: false }
+                    }
+                }
+            });
+        }
+
+        function updateTimeValue(value) {
+            document.getElementById('time-value').innerText = value;
+        }
+    </script>
+</body>
+</html>
