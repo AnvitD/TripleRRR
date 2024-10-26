@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Risk Assessment Predictor</title>
+    <title>Natural Disaster Risk Assessment</title>
     <style>
         /* Main Page Styling */
         body {
@@ -19,7 +19,7 @@
         }
         h2, h3 { text-align: center; color: #333; }
         label { display: block; margin-top: 10px; color: #555; }
-        select, input, button {
+        select, input, button, textarea {
             width: 100%; padding: 10px; margin-top: 5px;
             border-radius: 4px; border: 1px solid #ddd;
         }
@@ -47,8 +47,8 @@
         <!-- Tab Navigation for Main Sections -->
         <div class="tab-buttons">
             <button class="tab-button active" onclick="showSection('recognition')">Recognition</button>
-            <button class="tab-button" onclick="navigateToRecovery()">Recovery</button>
-            <button class="tab-button" onclick="showSection('response')">Response</button>
+            <button class="tab-button" onclick="showSection('recovery')">Response</button>
+            <button class="tab-button" onclick="showSection('response')">Recovery</button>
         </div>
 
         <!-- Recognition Section -->
@@ -97,9 +97,21 @@
             </div>
         </div>
 
+        <!-- Recovery Section -->
+        <div id="recovery" class="section">
+            <h3>Responce Guidance</h3>
+            <p>Get customized recovery guidance by asking a question.</p>
+            <form id="recovery-form">
+                <label for="prompt">Enter your question:</label>
+                <textarea id="prompt" name="prompt" rows="4" placeholder="Type your question here..."></textarea>
+                <button type="button" onclick="getRecoveryGuidance()">Get Guidance</button>
+            </form>
+            <div class="result" id="recovery-result"></div>
+        </div>
+
         <!-- Response Section -->
         <div id="response" class="section">
-            <h3>Response Actions</h3>
+            <h3>Recovery Actions</h3>
             <p>Immediate actions to take during a natural disaster.</p>
         </div>
     </div>
@@ -119,11 +131,7 @@
             document.querySelector(`button[onclick="showForm('${formId}')"]`).classList.add('active');
         }
 
-        function navigateToRecovery() {
-            // Navigate to the /recovery route
-            window.location.href = '/recovery';
-        }
-
+        let baseriskscore;
         async function calculateBaseRisk() {
             const state = document.getElementById('state').value.trim();
             const county = document.getElementById('county').value.trim();
@@ -141,13 +149,14 @@
                     body: JSON.stringify(requestData)
                 });
 
-                if (!response.ok) {
+                {#if (!response.ok) {
                     const errorData = await response.json();
                     document.getElementById("base-result").innerHTML = `Error: ${errorData.error}`;
                     return;
-                }
+                }#}
 
                 const data = await response.json();
+                baseriskscore = data.risk_score;
                 document.getElementById("base-result").innerHTML = `Base Risk Score: ${data.risk_score} (Calculated for ${disaster} in ${county}, ${state})`;
             } catch (error) {
                 console.error('Error calculating base risk:', error);
@@ -161,15 +170,22 @@
             let years = document.getElementById('time').value;
             document.getElementById("predictive-result").innerHTML = `Predictive Risk Score over ${years} years`;
 
+            // Generate sample risk scores for each year (replace with actual logic)
             const riskScores = [];
             for (let i = 0; i <= years; i++) {
-                riskScores.push((Math.sin(i / 10) + i * 0.5) % 10 + 5);
+                let riskScore = baseriskscore * Math.pow(1 + 0.036, i);
+                riskScore.push(parseFloat(riskScore.toFixed(2)));
             }
 
+            // Generate year labels
             const yearLabels = Array.from({ length: parseInt(years) + 1 }, (_, i) => i);
 
-            if (predictiveChart) predictiveChart.destroy();
+            // If the chart already exists, destroy it before creating a new one
+            if (predictiveChart) {
+                predictiveChart.destroy();
+            }
 
+            // Create the chart
             const ctx = document.getElementById('predictiveChart').getContext('2d');
             predictiveChart = new Chart(ctx, {
                 type: 'line',
@@ -200,6 +216,39 @@
 
         function updateTimeValue(value) {
             document.getElementById('time-value').innerText = value;
+        }
+
+        async function getRecoveryGuidance() {
+            const prompt = document.getElementById('prompt').value.trim();
+
+            if (!prompt) {
+                document.getElementById('recovery-result').innerHTML = 'Please enter a question.';
+                return;
+            }
+
+            const requestData = { prompt };
+
+            try {
+                const response = await fetch('/recovery', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    document.getElementById('recovery-result').innerHTML = `Error: ${errorData.error}`;
+                    return;
+                }
+
+                const data = await response.json();
+                document.getElementById('recovery-result').innerHTML = data.response;
+            } catch (error) {
+                console.error('Error getting recovery guidance:', error);
+                document.getElementById('recovery-result').innerHTML = `An unexpected error occurred. Please try again later.`;
+            }
         }
     </script>
 </body>
