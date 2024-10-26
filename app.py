@@ -64,5 +64,38 @@ def predict():
     else:
         return jsonify({'error': 'Request must be in JSON format.'}), 400
 
+@app.route('/recovery', methods=['GET'])
+def recovery():
+    """
+    Render the recovery page.
+    """
+    return render_template('recovery.html', disaster_types=disaster_types)
+
+@app.route('/get_recovery_suggestions', methods=['POST'])
+def get_recovery_suggestions():
+    """
+    Handle AJAX POST requests to fetch recovery suggestions.
+    Expects JSON data with 'disaster'.
+    Returns JSON response with recovery suggestions.
+    """
+    if request.is_json:
+        data = request.get_json()
+        disaster = data.get('disaster')
+
+        # Example recovery actions for each disaster type
+        recovery_actions = {
+            'Wildfire': 'Evacuate early, monitor hot spots, and create defensible space around your property.',
+            'Hurricane': 'Secure your home, stock emergency supplies, and follow evacuation orders.',
+            'Earthquake': 'Inspect buildings for damage, be cautious of aftershocks, and seek structural inspections.',
+            'Flooding': 'Move to higher ground, avoid floodwaters, and disinfect contaminated items.',
+            # Add more disaster types as needed...
+        }
+
+        suggestions = recovery_actions.get(disaster, "No specific suggestions available for this disaster type.")
+        return jsonify({"suggestions": suggestions})
+    else:
+        return jsonify({'error': 'Request must be in JSON format.'}), 400
+
+
 if __name__ == '__main__':
     app.run(debug=True)

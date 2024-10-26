@@ -47,7 +47,11 @@
         <!-- Tab Navigation for Main Sections -->
         <div class="tab-buttons">
             <button class="tab-button active" onclick="showSection('recognition')">Recognition</button>
+
+            <button class="tab-button" onclick="navigateToRecovery()">Recovery</button>
+
             <button class="tab-button" onclick="showSection('recovery')">Recovery</button>
+
             <button class="tab-button" onclick="showSection('response')">Response</button>
         </div>
 
@@ -97,12 +101,6 @@
             </div>
         </div>
 
-        <!-- Recovery Section -->
-        <div id="recovery" class="section">
-            <h3>Recovery Guidance</h3>
-            <p>Resources and tips for recovering from natural disasters.</p>
-        </div>
-
         <!-- Response Section -->
         <div id="response" class="section">
             <h3>Response Actions</h3>
@@ -124,6 +122,13 @@
             document.querySelectorAll('.tab-buttons .tab-button').forEach(button => button.classList.remove('active'));
             document.querySelector(`button[onclick="showForm('${formId}')"]`).classList.add('active');
         }
+
+
+        function navigateToRecovery() {
+            // Navigate to the /recovery route
+            window.location.href = '/recovery';
+        }
+
 
         async function calculateBaseRisk() {
             const state = document.getElementById('state').value.trim();
@@ -156,29 +161,26 @@
             }
         }
 
-
         let predictiveChart;
 
         function calculatePredictiveRisk() {
             let years = document.getElementById('time').value;
             document.getElementById("predictive-result").innerHTML = `Predictive Risk Score over ${years} years`;
 
-            // Generate sample risk scores for each year (replace with actual logic)
             const riskScores = [];
             for (let i = 0; i <= years; i++) {
+
+                riskScores.push((Math.sin(i / 10) + i * 0.5) % 10 + 5);
+
                 // Sample formula: (risk score increases by 0.5 each year, just for illustration)
                 riskScores.push((Math.sin(i / 10) + i * 0.5) % 10 + 5); // example values
+
             }
 
-            // Generate year labels
             const yearLabels = Array.from({ length: parseInt(years) + 1 }, (_, i) => i);
 
-            // If the chart already exists, destroy it before creating a new one
-            if (predictiveChart) {
-                predictiveChart.destroy();
-            }
+            if (predictiveChart) predictiveChart.destroy();
 
-            // Create the chart
             const ctx = document.getElementById('predictiveChart').getContext('2d');
             predictiveChart = new Chart(ctx, {
                 type: 'line',
