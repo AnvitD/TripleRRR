@@ -1,11 +1,16 @@
 from flask import Flask, request, render_template, jsonify
 import joblib
 import pandas as pd
+import os
+
+from ibm_watsonx_ai import APIClient
+from ibm_watsonx_ai import Credentials
+from ibm_watsonx_ai.foundation_models import ModelInference
 
 app = Flask(__name__)
 
 # Load the trained model
-model = joblib.load('risk_model.joblib')
+risk_model = joblib.load('risk_model.joblib')
 
 # Load unique states, counties, and disaster types for dropdowns
 data = pd.read_csv('PredictionDataSet.csv')
@@ -16,6 +21,23 @@ disaster_types = ['Avalanche', 'Coastal Flooding', 'Cold Wave', 'Drought', 'Eart
 
 states = sorted(data['State'].unique())
 counties = sorted(data['County'].unique())
+
+# Set up your Watsonx.ai credentials
+credentials = Credentials(
+    url="https://us-south.ml.cloud.ibm.com/",  # Replace {region} with your region
+    api_key="iwDOQ_4_8eOg_QH86FpoLxfCo7vXlUFb6_eGolQbgdnW",  # Replace {apikey} with your API key
+)
+
+client = APIClient(credentials)
+
+model_inference = ModelInference(
+    model_id="mistralai/mistral-large",
+    api_client=client,
+    project_id="d0eaa248-e010-412c-8cf8-ba046b28f236",  # Replace {project_id} with your project ID
+    params={
+        "max_new_tokens": 100
+    }
+)
 
 @app.route('/', methods=['GET'])
 def index():
@@ -50,12 +72,11 @@ def predict():
             'State': [state],
             'County': [county],
             'DisasterType': [disaster]
-            # 'Year' is not used in the model; it's for post-prediction adjustment
         })
 
         # Predict base risk
         try:
-            base_risk = model.predict(input_data)[0]
+            base_risk = risk_model.predict(input_data)[0]
             base_risk = round(base_risk, 2)
         except Exception as e:
             return jsonify({'error': f'Error during prediction: {str(e)}'}), 500
@@ -64,5 +85,29 @@ def predict():
     else:
         return jsonify({'error': 'Request must be in JSON format.'}), 400
 
+@app.route('/recovery', methods=['POST'])
+def recovery():
+    """
+    Handle AJAX POST requests to get recovery guidance.
+    Expects JSON data with 'prompt'.
+    Returns JSON response with 'response'.
+    """
+    if request.is_json:
+        data = request.get_json()
+        prompt = data.get('prompt')
+
+        if not prompt:
+            return jsonify({'error': 'Prompt is required.'}), 400
+
+        try:
+            # Use the watsonx.ai API to get the response
+            response = model_inference.generate_text(prompt)
+            return jsonify({'response': response})
+        except Exception as e:
+            return jsonify({'error': f'Error generating response: {str(e)}'}), 500
+    else:
+        return jsonify({'error': 'Request must be in JSON format.'}), 400
+
 if __name__ == '__main__':
     app.run(debug=True)
+
