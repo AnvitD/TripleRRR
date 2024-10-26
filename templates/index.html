@@ -29,6 +29,14 @@
         }
         button:hover { background-color: #45a049; }
         .result { margin-top: 20px; padding: 10px; background-color: #eaf1f4; border-radius: 4px; }
+        .error {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f8d7da;
+            color: #721c24;
+            border-radius: 4px;
+            display: none; /* Initially hidden */
+        }
         .tab-buttons { display: flex; justify-content: space-around; margin-top: 20px; }
         .tab-button {
             padding: 10px 20px; background-color: #ddd; border: none;
@@ -56,8 +64,8 @@
         <!-- Tab Navigation for Main Sections -->
         <div class="tab-buttons">
             <button class="tab-button active" onclick="showSection('recognition')">Recognition</button>
-            <button class="tab-button" onclick="showSection('recovery')">Response</button>
-            <button class="tab-button" onclick="showSection('response')">Recovery</button>
+            <button class="tab-button" onclick="showSection('response')">Response</button>
+            <button class="tab-button" onclick="showSection('recovery')">Recovery</button>
         </div>
 
         <!-- Recognition Section -->
@@ -87,6 +95,7 @@
 
                     <button type="button" onclick="calculateBaseRisk()">Calculate Base Risk</button>
                     <div class="result" id="base-result"></div>
+                    <div class="error" id="base-error" style="display: none;"></div>
                     <!-- Map Container -->
                     <div id="map"></div>
                 </form>
@@ -108,9 +117,15 @@
             </div>
         </div>
 
+        <!-- Response Section -->
+        <div id="response" class="section">
+            <h3>Recovery Actions</h3>
+            <p>Immediate actions to take during a natural disaster.</p>
+        </div>
+
         <!-- Recovery Section -->
         <div id="recovery" class="section">
-            <h3>Responce Guidance</h3>
+            <h3>Response Guidance</h3>
             <p>Get customized recovery guidance by asking a question.</p>
             <form id="recovery-form">
                 <label for="prompt">Enter your question:</label>
@@ -118,12 +133,6 @@
                 <button type="button" onclick="getRecoveryGuidance()">Get Guidance</button>
             </form>
             <div class="result" id="recovery-result"></div>
-        </div>
-
-        <!-- Response Section -->
-        <div id="response" class="section">
-            <h3>Recovery Actions</h3>
-            <p>Immediate actions to take during a natural disaster.</p>
         </div>
     </div>
 
@@ -164,21 +173,51 @@
                     body: JSON.stringify(requestData)
                 });
 
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    document.getElementById("base-result").innerHTML = `Error: ${errorData.error}`;
-                    return;
-                }
-
                 const data = await response.json();
-                baseriskscore = data.risk_score;
-                document.getElementById("base-result").innerHTML = `Base Risk Score: ${data.risk_score} (Calculated for ${disaster} in ${county}, ${state})`;
 
-                // Display the map
-                await displayMap(state, county);
+                if (!response.ok) {
+                    // Display error message
+                    const errorDiv = document.getElementById("base-error");
+                    errorDiv.innerHTML = `Error: ${data.error}`;
+                    errorDiv.style.display = 'block';
+
+                    // Clear any previous result
+                    document.getElementById("base-result").innerHTML = '';
+
+                    // Optionally, hide the map if displayed
+                    if (map) {
+                        map.remove();
+                        map = null;
+                        marker = null;
+                    }
+                } else {
+                    // Display risk score
+                    baseriskscore = data.risk_score;
+                    document.getElementById("base-result").innerHTML = `Base Risk Score: ${data.risk_score} (Calculated for ${disaster} in ${county}, ${state})`;
+
+                    // Hide error message if previously shown
+                    const errorDiv = document.getElementById("base-error");
+                    errorDiv.innerHTML = '';
+                    errorDiv.style.display = 'none';
+
+                    // Display the map
+                    await displayMap(state, county);
+                }
             } catch (error) {
                 console.error('Error calculating base risk:', error);
-                document.getElementById("base-result").innerHTML = `An unexpected error occurred. Please try again later.`;
+                const errorDiv = document.getElementById("base-error");
+                errorDiv.innerHTML = `An unexpected error occurred. Please try again later.`;
+                errorDiv.style.display = 'block';
+
+                // Clear any previous result
+                document.getElementById("base-result").innerHTML = '';
+
+                // Optionally, hide the map if displayed
+                if (map) {
+                    map.remove();
+                    map = null;
+                    marker = null;
+                }
             }
         }
 

@@ -95,3 +95,12 @@ button:hover {
 .section.active {
     display: block;
 }
+
+.error {
+    margin-top: 20px;
+    padding: 10px;
+    background-color: #f8d7da;
+    color: #721c24;
+    border-radius: 4px;
+    display: none; /* Initially hidden */
+}
