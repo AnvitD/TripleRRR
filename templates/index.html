@@ -109,10 +109,10 @@
             <div id="base" class="section active">
                 <form id="base-risk-form">
                     <label for="state">State:</label>
-                    <input type="text" id="state" name="state" placeholder="Enter state name (e.g., Florida)" required>
+                    <input type="text" id="state" name="state" placeholder="Enter state name" required>
 
                     <label for="county">County:</label>
-                    <input type="text" id="county" name="county" placeholder="Enter county name (e.g., Hillsborough)" required>
+                    <input type="text" id="county" name="county" placeholder="Enter county name" required>
 
                     <label for="disaster">Type of Natural Disaster:</label>
                     <select name="disaster" id="disaster" required>
@@ -148,13 +148,14 @@
 
         <!-- Response Section -->
         <div id="response" class="section">
-            <h3>Recovery Actions</h3>
+            <h3>Response Actions</h3>
             <p>Immediate actions to take during a natural disaster.</p>
         </div>
 
         <!-- Recovery Section -->
         <div id="recovery" class="section">
-            <h3>Response Guidance</h3>
+            <h3>Recovery Guidance</h3>
+            <p>Get customized recovery guidance by asking a question.</p>
             <form id="recovery-form">
                 <div class = "invisible-textbox">
                     <textarea id="prompt" name="prompt" rows="4" outline="none"></textarea>
@@ -164,6 +165,8 @@
             <div class="result" id="recovery-result"></div>
         </div>
     </div>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
     <script>
         // Declare map and marker variables in the global scope
@@ -249,7 +252,20 @@
                 } else {
                     // Display risk score
                     baseriskscore = data.risk_score;
-                    document.getElementById("base-result").innerHTML = `Base Risk Score: ${data.risk_score} (Calculated for ${disaster} in ${county}, ${state})`;
+
+                    let iconClass = "";
+
+                    if (data.risk_score < 35) {
+                      iconHtml = '<i class="fa-solid fa-triangle-exclamation" style="color: #63E6BE;"></i>'; // Low risk
+                    }
+                    else if (data.risk_score < 65) {
+                      iconHtml = `<i class="fa-solid fa-triangle-exclamation" style="color: #FFD43B;"></i>`; // Medium risk
+                    }
+                    else {
+                      iconHtml = '<i class="fa-solid fa-triangle-exclamation" style="color: #e66565;"></i>'; // High risk
+                    }
+
+                    document.getElementById("base-result").innerHTML = `${iconHtml} Base Risk Score: ${data.risk_score} (Calculated for ${disaster} in ${county}, ${state})`;
 
                     // Hide error message if previously shown
                     const errorDiv = document.getElementById("base-error");
@@ -531,7 +547,7 @@
         async function getRecoveryGuidance() {
             const prompt = document.getElementById('prompt').value.trim();
 
-           
+
 
             const requestData = { prompt };
 
