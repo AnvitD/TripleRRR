@@ -24,8 +24,8 @@ counties = sorted(data['County'].unique())
 
 # Set up your Watsonx.ai credentials
 credentials = Credentials(
-    url="https://us-south.ml.cloud.ibm.com/",  # Replace {region} with your region
-    api_key="iwDOQ_4_8eOg_QH86FpoLxfCo7vXlUFb6_eGolQbgdnW",  # Replace {apikey} with your API key
+    url="https://us-south.ml.cloud.ibm.com/",
+    api_key="iwDOQ_4_8eOg_QH86FpoLxfCo7vXlUFb6_eGolQbgdnW",
 )
 
 client = APIClient(credentials)
@@ -33,7 +33,7 @@ client = APIClient(credentials)
 model_inference = ModelInference(
     model_id="mistralai/mistral-large",
     api_client=client,
-    project_id="d0eaa248-e010-412c-8cf8-ba046b28f236",  # Replace {project_id} with your project ID
+    project_id="d0eaa248-e010-412c-8cf8-ba046b28f236",
     params={
         "max_new_tokens": 100
     }
