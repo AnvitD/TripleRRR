@@ -24,24 +24,45 @@ def index():
 
 @app.route('/predict', methods=['POST'])
 def predict():
-    data = request.get_json()
-    state = data.get('state')
-    county = data.get('county')
-    disaster = data.get('disaster')
+    """
+    Handle AJAX POST requests to calculate the base risk score.
+    Expects JSON data with 'state', 'county', and 'disaster'.
+    Returns JSON response with 'risk_score'.
+    """
+    if request.is_json:
+        data = request.get_json()
+        state = data.get('state')
+        county = data.get('county')
+        disaster = data.get('disaster')
 
-    # Create a DataFrame for prediction
-    input_data = pd.DataFrame({
-        'State': [state],
-        'County': [county],
-        'DisasterType': [disaster]
-    })
+        # Validate input
+        if not all([state, county, disaster]):
+            return jsonify({'error': 'Missing data: state, county, and disaster are required.'}), 400
 
-    # Predict risk
-    predicted_risk = model.predict(input_data)[0]
-    predicted_risk = round(predicted_risk, 2)
+        # Optional: Validate if the state and county exist in the dataset
+        if state not in states:
+            return jsonify({'error': f"Invalid state: '{state}'. Please enter a valid state."}), 400
+        if county not in counties:
+            return jsonify({'error': f"Invalid county: '{county}'. Please enter a valid county."}), 400
 
-    # Return the prediction as JSON for the JavaScript fetch call
-    return jsonify({"risk_score": predicted_risk})
+        # Create a DataFrame for prediction
+        input_data = pd.DataFrame({
+            'State': [state],
+            'County': [county],
+            'DisasterType': [disaster]
+            # 'Year' is not used in the model; it's for post-prediction adjustment
+        })
+
+        # Predict base risk
+        try:
+            base_risk = model.predict(input_data)[0]
+            base_risk = round(base_risk, 2)
+        except Exception as e:
+            return jsonify({'error': f'Error during prediction: {str(e)}'}), 500
+
+        return jsonify({'risk_score': base_risk})
+    else:
+        return jsonify({'error': 'Request must be in JSON format.'}), 400
 
 if __name__ == '__main__':
     app.run(debug=True)
