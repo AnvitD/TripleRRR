@@ -47,8 +47,8 @@
         <!-- Tab Navigation for Main Sections -->
         <div class="tab-buttons">
             <button class="tab-button active" onclick="showSection('recognition')">Recognition</button>
-            <button class="tab-button" onclick="showSection('recovery')">Response</button>
-            <button class="tab-button" onclick="showSection('response')">Recovery</button>
+            <button class="tab-button" onclick="showSection('recovery')">Recovery</button>
+            <button class="tab-button" onclick="showSection('response')">Response</button>
         </div>
 
         <!-- Recognition Section -->
@@ -63,20 +63,10 @@
             <div id="base" class="section active">
                 <form id="base-risk-form">
                     <label for="state">State:</label>
-                    <select name="state" id="state" required>
-                        <option value="" disabled selected>Select a state</option>
-                        {% for state in states %}
-                            <option value="{{ state }}">{{ state }}</option>
-                        {% endfor %}
-                    </select>
+                    <input type="text" id="state" name="state" placeholder="Enter state name" required>
 
                     <label for="county">County:</label>
-                    <select name="county" id="county" required>
-                        <option value="" disabled selected>Select a county</option>
-                        {% for county in counties %}
-                            <option value="{{ county }}">{{ county }}</option>
-                        {% endfor %}
-                    </select>
+                    <input type="text" id="county" name="county" placeholder="Enter county name" required>
 
                     <label for="disaster">Type of Natural Disaster:</label>
                     <select name="disaster" id="disaster" required>
@@ -135,11 +125,9 @@
             document.querySelector(`button[onclick="showForm('${formId}')"]`).classList.add('active');
         }
 
-        let baseRiskScore;
-
         async function calculateBaseRisk() {
-            const state = document.getElementById('state').value;
-            const county = document.getElementById('county').value;
+            const state = document.getElementById('state').value.trim();
+            const county = document.getElementById('county').value.trim();
             const disaster = document.getElementById('disaster').value;
 
             // Prepare the request data
@@ -154,11 +142,17 @@
                     body: JSON.stringify(requestData)
                 });
 
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    document.getElementById("base-result").innerHTML = `Error: ${errorData.error}`;
+                    return;
+                }
+
                 const data = await response.json();
-                baseRiskScore = data.risk_score;
                 document.getElementById("base-result").innerHTML = `Base Risk Score: ${data.risk_score} (Calculated for ${disaster} in ${county}, ${state})`;
             } catch (error) {
                 console.error('Error calculating base risk:', error);
+                document.getElementById("base-result").innerHTML = `An unexpected error occurred. Please try again later.`;
             }
         }
 
@@ -171,10 +165,9 @@
 
             // Generate sample risk scores for each year (replace with actual logic)
             const riskScores = [];
-
             for (let i = 0; i <= years; i++) {
-                let riskScore = baseRiskScore * Math.pow(1 + 0.036, i);
-                riskScores.push(parseFloat(riskScore.toFixed(2))); // Round to 2 decimal places for readability
+                // Sample formula: (risk score increases by 0.5 each year, just for illustration)
+                riskScores.push((Math.sin(i / 10) + i * 0.5) % 10 + 5); // example values
             }
 
             // Generate year labels
