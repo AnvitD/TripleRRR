@@ -126,10 +126,10 @@
         <!-- Recovery Section -->
         <div id="recovery" class="section">
             <h3>Response Guidance</h3>
-            <p>Get customized recovery guidance by asking a question.</p>
             <form id="recovery-form">
-                <label for="prompt">Enter your question:</label>
-                <textarea id="prompt" name="prompt" rows="4" placeholder="Type your question here..."></textarea>
+                <div class = "invisible-textbox">
+                    <textarea id="prompt" name="prompt" rows="4" outline="none"></textarea>
+                </div>
                 <button type="button" onclick="getRecoveryGuidance()">Get Guidance</button>
             </form>
             <div class="result" id="recovery-result"></div>
@@ -353,10 +353,7 @@
         async function getRecoveryGuidance() {
             const prompt = document.getElementById('prompt').value.trim();
 
-            if (!prompt) {
-                document.getElementById('recovery-result').innerHTML = 'Please enter a question.';
-                return;
-            }
+           
 
             const requestData = { prompt };
 
