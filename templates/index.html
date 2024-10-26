@@ -47,7 +47,11 @@
         <!-- Tab Navigation for Main Sections -->
         <div class="tab-buttons">
             <button class="tab-button active" onclick="showSection('recognition')">Recognition</button>
+
             <button class="tab-button" onclick="navigateToRecovery()">Recovery</button>
+
+            <button class="tab-button" onclick="showSection('recovery')">Recovery</button>
+
             <button class="tab-button" onclick="showSection('response')">Response</button>
         </div>
 
@@ -119,10 +123,12 @@
             document.querySelector(`button[onclick="showForm('${formId}')"]`).classList.add('active');
         }
 
+
         function navigateToRecovery() {
             // Navigate to the /recovery route
             window.location.href = '/recovery';
         }
+
 
         async function calculateBaseRisk() {
             const state = document.getElementById('state').value.trim();
@@ -163,7 +169,12 @@
 
             const riskScores = [];
             for (let i = 0; i <= years; i++) {
+
                 riskScores.push((Math.sin(i / 10) + i * 0.5) % 10 + 5);
+
+                // Sample formula: (risk score increases by 0.5 each year, just for illustration)
+                riskScores.push((Math.sin(i / 10) + i * 0.5) % 10 + 5); // example values
+
             }
 
             const yearLabels = Array.from({ length: parseInt(years) + 1 }, (_, i) => i);
