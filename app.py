@@ -67,6 +67,7 @@ def predict():
     Returns JSON response with 'risk_score' or 'error'.
     """
     if request.is_json:
+        global state, county, disaster
         data_input = request.get_json()
         state = data_input.get('state')
         county = data_input.get('county')
@@ -120,8 +121,9 @@ def recovery():
     Returns JSON response with 'response' or 'error'.
     """
     if request.is_json:
-        data_input = request.get_json()
-        prompt = data_input.get('prompt')
+        prompt = "For somone who lives in the state:" + state + " and county: " + county + "provide an extremely exhaustive and detailed bulleted list for how they should prepare for a " + disaster + " that is approaching them. Make the list very long and detailed, use proper grammar and be very adamant."
+        """data_input = request.get_json()
+        prompt = data_input.get('prompt')"""
 
         if not prompt:
             return jsonify({'error': 'Prompt is required.'}), 400
