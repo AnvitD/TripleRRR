@@ -10,12 +10,13 @@
             background-color: #f3f3f3;
         }
         .container {
-            max-width: 800px;
+            max-width: 900px;
             margin: auto;
             background-color: #fff;
             padding: 20px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             border-radius: 8px;
+            position: relative; /* For loading spinner positioning */
         }
         h2, h3 { text-align: center; color: #333; }
         label { display: block; margin-top: 10px; color: #555; }
@@ -47,19 +48,47 @@
         .section.active { display: block; }
         /* Map Styling */
         #map {
-            height: 400px;
+            height: 600px; /* Increased height for better visibility */
             width: 100%;
             margin-top: 20px;
+        }
+        /* Loading Spinner Styling */
+        #loading-spinner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            display: none; /* Initially hidden */
+            z-index: 1000; /* Ensure it's on top */
+        }
+        /* Input Error Styling */
+        .input-error {
+            border-color: #e74c3c; /* Red border for errors */
         }
     </style>
     <!-- Include Leaflet CSS and JS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <!-- Include MarkerCluster CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <!-- Include MarkerCluster JS -->
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+    <!-- Include Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <div class="container">
         <h2>Natural Disaster Risk Assessment</h2>
+
+        <!-- Loading Spinner -->
+        <div id="loading-spinner">
+            <p>Loading...</p>
+        </div>
 
         <!-- Tab Navigation for Main Sections -->
         <div class="tab-buttons">
@@ -80,10 +109,10 @@
             <div id="base" class="section active">
                 <form id="base-risk-form">
                     <label for="state">State:</label>
-                    <input type="text" id="state" name="state" placeholder="Enter state name" required>
+                    <input type="text" id="state" name="state" placeholder="Enter state name (e.g., Florida)" required>
 
                     <label for="county">County:</label>
-                    <input type="text" id="county" name="county" placeholder="Enter county name" required>
+                    <input type="text" id="county" name="county" placeholder="Enter county name (e.g., Hillsborough)" required>
 
                     <label for="disaster">Type of Natural Disaster:</label>
                     <select name="disaster" id="disaster" required>
@@ -141,6 +170,29 @@
         let map;
         let marker;
 
+        // Initialize cluster groups for gas stations and large stores
+        let gasStationsCluster = L.markerClusterGroup();
+        let largeStoresCluster = L.markerClusterGroup();
+
+        // Flag to ensure layer controls are added only once
+        let layerControlsAdded = false;
+
+        // Define custom icons
+        const gasStationIcon = L.icon({
+            iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png', // Replace with your preferred icon
+            iconSize: [25, 25],
+            iconAnchor: [12, 25],
+            popupAnchor: [0, -25]
+        });
+
+        const largeStoreIcon = L.icon({
+            iconUrl: 'https://cdn-icons-png.flaticon.com/512/2907/2907762.png', // Replace with your preferred icon
+            iconSize: [25, 25],
+            iconAnchor: [12, 25],
+            popupAnchor: [0, -25]
+        });
+
+        // Function to show sections based on tab clicks
         function showSection(sectionId) {
             document.querySelectorAll('.section').forEach(section => section.classList.remove('active'));
             document.getElementById(sectionId).classList.add('active');
@@ -148,6 +200,7 @@
             document.querySelector(`button[onclick="showSection('${sectionId}')"]`).classList.add('active');
         }
 
+        // Function to show forms within the Recognition section
         function showForm(formId) {
             document.querySelectorAll('#recognition .section').forEach(section => section.classList.remove('active'));
             document.getElementById(formId).classList.add('active');
@@ -155,6 +208,7 @@
             document.querySelector(`button[onclick="showForm('${formId}')"]`).classList.add('active');
         }
 
+        // Function to calculate the base risk score
         let baseriskscore;
         async function calculateBaseRisk() {
             const state = document.getElementById('state').value.trim();
@@ -163,6 +217,9 @@
 
             // Prepare the request data
             const requestData = { state, county, disaster };
+
+            // Show loading spinner
+            document.getElementById('loading-spinner').style.display = 'block';
 
             try {
                 const response = await fetch('/predict', {
@@ -184,11 +241,10 @@
                     // Clear any previous result
                     document.getElementById("base-result").innerHTML = '';
 
-                    // Optionally, hide the map if displayed
+                    // Remove existing markers and clusters
                     if (map) {
-                        map.remove();
-                        map = null;
-                        marker = null;
+                        gasStationsCluster.clearLayers();
+                        largeStoresCluster.clearLayers();
                     }
                 } else {
                     // Display risk score
@@ -212,15 +268,18 @@
                 // Clear any previous result
                 document.getElementById("base-result").innerHTML = '';
 
-                // Optionally, hide the map if displayed
+                // Remove existing markers and clusters
                 if (map) {
-                    map.remove();
-                    map = null;
-                    marker = null;
+                    gasStationsCluster.clearLayers();
+                    largeStoresCluster.clearLayers();
                 }
+            } finally {
+                // Hide loading spinner
+                document.getElementById('loading-spinner').style.display = 'none';
             }
         }
 
+        // Function to display the map and fetch nearby amenities
         async function displayMap(state, county) {
             const location = `${county}, ${state}`;
             try {
@@ -242,24 +301,25 @@
                             attribution: '© OpenStreetMap'
                         }).addTo(map);
 
-                        // Add a marker
-                        marker = L.marker([lat, lon]).addTo(map)
-                            .bindPopup(`${county}, ${state}`)
-                            .openPopup();
+                        // Add cluster groups to the map
+                        map.addLayer(gasStationsCluster);
+                        map.addLayer(largeStoresCluster);
                     } else {
                         // If map already exists, update its view
                         map.setView([lat, lon], 10);
+                    }
 
-                        // Remove existing marker
-                        if (marker) {
-                            map.removeLayer(marker);
-                        }
-
-                        // Add a new marker
+                    // Add a marker for the county
+                    if (marker) {
+                        marker.setLatLng([lat, lon]).setPopupContent(`${county}, ${state}`).openPopup();
+                    } else {
                         marker = L.marker([lat, lon]).addTo(map)
                             .bindPopup(`${county}, ${state}`)
                             .openPopup();
                     }
+
+                    // Query and display nearby amenities
+                    await fetchNearbyAmenities(lat, lon);
                 } else {
                     document.getElementById('base-result').innerHTML += '<br>Location not found on the map.';
                 }
@@ -269,8 +329,124 @@
             }
         }
 
-        let predictiveChart;
+        // Function to fetch nearby amenities using Overpass API
+        async function fetchNearbyAmenities(lat, lon) {
+            // Define the search radius in meters (40 km)
+            const radius = 40000;
 
+            // Overpass QL query to fetch gas stations, convenience stores, supermarkets, and department stores within the radius
+            const query = `
+                [out:json][timeout:25];
+                (
+                    node["amenity"="gas_station"](around:${radius},${lat},${lon});
+                    node["shop"="convenience"](around:${radius},${lat},${lon});
+                    way["amenity"="gas_station"](around:${radius},${lat},${lon});
+                    way["shop"="convenience"](around:${radius},${lat},${lon});
+                    relation["amenity"="gas_station"](around:${radius},${lat},${lon});
+                    relation["shop"="convenience"](around:${radius},${lat},${lon});
+
+                    node["shop"~"supermarket|department_store"](around:${radius},${lat},${lon});
+                    way["shop"~"supermarket|department_store"](around:${radius},${lat},${lon});
+                    relation["shop"~"supermarket|department_store"](around:${radius},${lat},${lon});
+                );
+                out center;
+            `;
+
+            try {
+                const overpassUrl = 'https://overpass-api.de/api/interpreter';
+                const response = await fetch(overpassUrl, {
+                    method: 'POST',
+                    body: query,
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    }
+                });
+
+                const data = await response.json();
+
+                // Clear existing markers in the cluster groups
+                gasStationsCluster.clearLayers();
+                largeStoresCluster.clearLayers();
+
+                // Iterate through the returned elements
+                data.elements.forEach(element => {
+                    let amenityType = '';
+                    let name = 'Unnamed';
+
+                    if (element.tags) {
+                        if (element.tags.name) {
+                            name = element.tags.name;
+                        }
+
+                        if (element.tags.amenity === 'gas_station') {
+                            amenityType = 'Gas Station';
+                        } else if (element.tags.shop === 'convenience') {
+                            amenityType = 'Convenience Store';
+                        } else if (element.tags.shop === 'supermarket') {
+                            amenityType = 'Supermarket';
+                        } else if (element.tags.shop === 'department_store') {
+                            amenityType = 'Department Store';
+                        }
+                    }
+
+                    // Exclude markers with name 'Unnamed'
+                    if (name === 'Unnamed') {
+                        return; // Skip this element
+                    }
+
+                    // Determine the coordinates
+                    let latitude = element.lat;
+                    let longitude = element.lon;
+
+                    // For ways and relations, use the center
+                    if (!latitude || !longitude) {
+                        if (element.center) {
+                            latitude = element.center.lat;
+                            longitude = element.center.lon;
+                        } else {
+                            // Skip if no coordinates are available
+                            return;
+                        }
+                    }
+
+                    // Create a popup content
+                    const popupContent = `<strong>${name}</strong><br>${amenityType}`;
+
+                    // Add markers to respective cluster groups
+                    if (amenityType === 'Gas Station' || amenityType === 'Convenience Store') {
+                        L.marker([latitude, longitude], { icon: gasStationIcon })
+                            .bindPopup(popupContent)
+                            .addTo(gasStationsCluster);
+                    } else if (amenityType === 'Supermarket' || amenityType === 'Department Store') {
+                        L.marker([latitude, longitude], { icon: largeStoreIcon })
+                            .bindPopup(popupContent)
+                            .addTo(largeStoresCluster);
+                    }
+                });
+
+                // Add layer controls if not already added
+                if (!layerControlsAdded) {
+                    addLayerControls();
+                    layerControlsAdded = true;
+                }
+            } catch (error) {
+                console.error('Error fetching nearby amenities:', error);
+                // Optionally, display an error message to the user
+            }
+        }
+
+        // Function to add layer controls for gas stations and large stores
+        function addLayerControls() {
+            const overlays = {
+                "Gas Stations & Convenience Stores": gasStationsCluster,
+                "Large Stores": largeStoresCluster
+            };
+
+            L.control.layers(null, overlays, { collapsed: false, position: 'topright' }).addTo(map);
+        }
+
+        // Function to calculate predictive risk score
+        let predictiveChart;
         function calculatePredictiveRisk() {
             let years = document.getElementById('time').value;
             document.getElementById("predictive-result").innerHTML = `Predictive Risk Score over ${years} years`;
@@ -346,10 +522,12 @@
             });
         }
 
+        // Function to update the displayed time value
         function updateTimeValue(value) {
             document.getElementById('time-value').innerText = value;
         }
 
+        // Function to get recovery guidance
         async function getRecoveryGuidance() {
             const prompt = document.getElementById('prompt').value.trim();
 
@@ -369,13 +547,13 @@
                     body: JSON.stringify(requestData)
                 });
 
+                const data = await response.json();
+
                 if (!response.ok) {
-                    const errorData = await response.json();
-                    document.getElementById('recovery-result').innerHTML = `Error: ${errorData.error}`;
+                    document.getElementById('recovery-result').innerHTML = `Error: ${data.error}`;
                     return;
                 }
 
-                const data = await response.json();
                 document.getElementById('recovery-result').innerHTML = data.response;
             } catch (error) {
                 console.error('Error getting recovery guidance:', error);
