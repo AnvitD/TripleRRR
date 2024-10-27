@@ -53,8 +53,8 @@
         }
         h2 {
             text-align: center;
-            font-size: 40px;
-            font-weight: 1000;
+            font-size: 75px;
+            font-weight: 500;
             color: var(--primary-color);
             margin-bottom: 40px;
             position: relative;
@@ -186,7 +186,7 @@
         /* Loading Spinner Styling */
         #loading-spinner {
             position: absolute;
-            top: 50%;
+            top: 75%;
             left: 50%;
             transform: translate(-50%, -50%);
             background-color: rgba(255, 255, 255, 0.9);
@@ -443,6 +443,10 @@
                     const resultDiv = document.getElementById("base-result");
                     resultDiv.innerHTML = '';
                     resultDiv.style.display = 'none';
+
+                    const additionalDiv = document.getElementById("additional-info");
+                    additionalDiv.innerHTML = '';
+                    additionalDiv.style.display = 'block'
 
                     // Remove existing markers and clusters
                     if (map) {
@@ -779,60 +783,74 @@
         }
 
         function getAdditionalInfo() {
-    const state = document.getElementById('state').value.trim();
-    const county = document.getElementById('county').value.trim();
-    const disaster = document.getElementById('disaster').value;
+            const additionalDiv = document.getElementById("additional-info");
+            additionalDiv.innerHTML = `Watson is generating additional information . . .`;
+            additionalDiv.style.display = 'block';
+            //document.getElementById('additional-info').innerHTML = `Watson is generating additional information . . .`;
+            const state = document.getElementById('state').value.trim();
+            const county = document.getElementById('county').value.trim();
+            const disaster = document.getElementById('disaster').value;
 
-    const requestData = { state, county, disaster };
+            const requestData = { state, county, disaster };
 
-    fetch('/additional_info', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(requestData)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.additional_info) {
-            document.getElementById('additional-info').innerHTML = data.additional_info;
-        } else if (data.error) {
-            document.getElementById('additional-info').innerHTML = `Error: ${data.error}`;
+            fetch('/additional_info', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.additional_info) {
+                    additionalDiv.innerHTML = data.additional_info;
+                    additionalDiv.style.display = 'block';
+                    //document.getElementById('additional-info').innerHTML = data.additional_info;
+                } else if (data.error) {
+                    additionalDiv.innerHTML = `Error: ${data.error}`;
+                    additionalDiv.style.display = 'block';
+                    //document.getElementById('additional-info').innerHTML = `Error: ${data.error}`;
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching additional information:', error);
+                additionalDiv.innerHTML = 'An error occurred while fetching additional information.';
+                additionalDiv.style.display = 'block';
+                //document.getElementById('additional-info').innerHTML = 'An error occurred while fetching additional information.';
+            });
         }
-    })
-    .catch(error => {
-        console.error('Error fetching additional information:', error);
-        document.getElementById('additional-info').innerHTML = 'An error occurred while fetching additional information.';
-    });
-}
 
-        function getAdditionalInfo() {
-    const state = document.getElementById('state').value.trim();
-    const county = document.getElementById('county').value.trim();
-    const disaster = document.getElementById('disaster').value;
-
-    const requestData = { state, county, disaster };
-
-    fetch('/additional_info', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(requestData)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.additional_info) {
-            document.getElementById('additional-info').innerHTML = data.additional_info;
-        } else if (data.error) {
-            document.getElementById('additional-info').innerHTML = `Error: ${data.error}`;
-        }
-    })
-    .catch(error => {
-        console.error('Error fetching additional information:', error);
-        document.getElementById('additional-info').innerHTML = 'An error occurred while fetching additional information.';
-    });
-}
+        {#function getAdditionalInfo() {#}
+        {#    const additionalDiv = document.getElementById("additional-info");#}
+        {#            additionalDiv.innerHTML = `Watson is generating additional information . . .`;#}
+        {#            additionalDiv.style.display = 'block';#}
+        {#    //document.getElementById('additional-info').innerHTML = `Watson is generating additional information . . .`;#}
+        {#    const state = document.getElementById('state').value.trim();#}
+        {#    const county = document.getElementById('county').value.trim();#}
+        {#    const disaster = document.getElementById('disaster').value;#}
+        {##}
+        {#    const requestData = { state, county, disaster };#}
+        {##}
+        {#    fetch('/additional_info', {#}
+        {#        method: 'POST',#}
+        {#        headers: {#}
+        {#            'Content-Type': 'application/json'#}
+        {#        },#}
+        {#        body: JSON.stringify(requestData)#}
+        {#    })#}
+        {#    .then(response => response.json())#}
+        {#    .then(data => {#}
+        {#        if (data.additional_info) {#}
+        {#            document.getElementById('additional-info').innerHTML = data.additional_info;#}
+        {#        } else if (data.error) {#}
+        {#            document.getElementById('additional-info').innerHTML = `Error: ${data.error}`;#}
+        {#        }#}
+        {#    })#}
+        {#    .catch(error => {#}
+        {#        console.error('Error fetching additional information:', error);#}
+        {#        document.getElementById('additional-info').innerHTML = 'An error occurred while fetching additional information.';#}
+        {#    });#}
+        {# }#}
 
 
         // Function to get response guidance
@@ -858,7 +876,8 @@
                     return;
                 }
 
-                // After getting response guidance, display the map
+                document.getElementById('response-output').innerHTML = data.response;
+
             } catch (error) {
                 console.error('Error getting response guidance:', error);
                 document.getElementById('response-output').innerHTML = `An unexpected error occurred. Please try again later.`;
