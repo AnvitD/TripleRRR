@@ -75,7 +75,7 @@
             font-weight: 500;
         }
         select, input, textarea {
-            width: 100%;
+            width: 97%;
             padding: 14px;
             margin-top: 10px;
             border-radius: var(--border-radius);
@@ -178,6 +178,10 @@
             display: none;
             z-index: 1000;
         }
+        #disaster {
+            color: dimgray;
+            width: auto;
+        }
         /* Animations */
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(20px); }
@@ -277,6 +281,9 @@
         <!-- Response Section -->
         <div id="response" class="section">
             <h3>Response Guidance</h3>
+            <form id="response-form">
+                <button type="button" onclick="getResponseGuidance()">Get Response Guidance</button>
+            </form>
             <div class="result" id="response-result"></div>
             <!-- Map Container -->
             <div id="map"></div>
@@ -285,6 +292,9 @@
         <!-- Recovery Section -->
         <div id="recovery" class="section">
             <h3>Recovery Guidance</h3>
+            <form id="recovery-form">
+                <button type="button" onclick="getRecoveryGuidance()">Get Recovery Guidance</button>
+            </form>
             <div class="result" id="recovery-result"></div>
         </div>
     </div>
