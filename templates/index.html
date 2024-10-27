@@ -390,7 +390,7 @@
             const requestData = { state, county, disaster };
 
             // Show loading spinner
-            document.getElementById('loading-spinner').style.display = 'block';
+            {#document.getElementById('loading-spinner').style.display = 'block';#}
 
             try {
                 const response = await fetch('/predict', {
@@ -462,10 +462,11 @@
                     largeStoresCluster.clearLayers();
                     evacuationCitiesCluster.clearLayers();
                 }
-            } finally {
-                // Hide loading spinner
-                document.getElementById('loading-spinner').style.display = 'none';
             }
+            {#finally {#}
+            {#    // Hide loading spinner#}
+            {#    document.getElementById('loading-spinner').style.display = 'none';#}
+            {# }#}
         }
 
         // Function to display the map and fetch nearby amenities
