@@ -2,55 +2,168 @@
 <html>
 <head>
     <title>Natural Disaster Risk Assessment</title>
+    <!-- Include Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Include FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Include Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <!-- Include MarkerCluster CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
+
     <style>
-        /* Main Page Styling */
+        /* Root Variables for Colors */
+        :root {
+            --primary-color: #2C3E50;    /* Dark Slate */
+            --secondary-color: #18BC9C;  /* Teal */
+            --accent-color: #E74C3C;     /* Red */
+            --background-color: #FDFEFE; /* Off-white */
+            --text-color: #2C3E50;       /* Dark Slate */
+            --light-text-color: #7F8C8D; /* Gray */
+            --border-radius: 12px;
+        }
+
+        /* Global Styles */
         body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-            background-color: #f3f3f3;
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            overflow-x: hidden;
         }
         .container {
-            max-width: 900px;
-            margin: auto;
+            max-width: 1000px;
+            margin: 40px auto;
             background-color: #fff;
-            padding: 20px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            border-radius: 8px;
-            position: relative; /* For loading spinner positioning */
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(44, 62, 80, 0.2);
+            border-radius: var(--border-radius);
+            position: relative;
+            transition: transform 0.3s, box-shadow 0.3s;
         }
-        h2, h3 { text-align: center; color: #333; }
-        label { display: block; margin-top: 10px; color: #555; }
-        select, input, button, textarea {
-            width: 100%; padding: 10px; margin-top: 5px;
-            border-radius: 4px; border: 1px solid #ddd;
+        .container:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 30px 60px rgba(44, 62, 80, 0.3);
+        }
+        h2 {
+            text-align: center;
+            font-weight: 500;
+            color: var(--primary-color);
+            margin-bottom: 40px;
+            position: relative;
+        }
+        h2::after {
+            content: '';
+            width: 60px;
+            height: 4px;
+            background-color: var(--secondary-color);
+            display: block;
+            margin: 20px auto 0;
+            border-radius: 2px;
+        }
+        h3 {
+            color: var(--primary-color);
+            margin-bottom: 20px;
+            font-weight: 500;
+            text-align: center;
+        }
+        label {
+            display: block;
+            margin-top: 20px;
+            color: var(--light-text-color);
+            font-weight: 500;
+        }
+        select, input, textarea {
+            width: 100%;
+            padding: 14px;
+            margin-top: 10px;
+            border-radius: var(--border-radius);
+            border: 1px solid #ccc;
+            font-size: 16px;
+            transition: border-color 0.3s;
+            background-color: #f9f9f9;
+        }
+        select:focus, input:focus, textarea:focus {
+            border-color: var(--secondary-color);
+            outline: none;
+            background-color: #fff;
         }
         button {
-            background-color: #4CAF50; color: white; font-size: 16px; cursor: pointer;
-            transition: background-color 0.3s;
+            background-color: var(--secondary-color);
+            color: #fff;
+            font-size: 18px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+            border: none;
+            padding: 14px 20px;
+            margin-top: 30px;
+            border-radius: var(--border-radius);
+            font-weight: 500;
+            width: 100%;
         }
-        button:hover { background-color: #45a049; }
-        .result { margin-top: 20px; padding: 10px; background-color: #eaf1f4; border-radius: 4px; }
+        button:hover {
+            background-color: #149174;
+            transform: translateY(-2px);
+        }
+        .result, .error {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: var(--border-radius);
+            font-size: 16px;
+            line-height: 1.6;
+        }
+        .result {
+            background-color: #ecf0f1;
+            color: var(--text-color);
+        }
         .error {
-            margin-top: 20px;
-            padding: 10px;
             background-color: #f8d7da;
-            color: #721c24;
-            border-radius: 4px;
-            display: none; /* Initially hidden */
+            color: #c0392b;
+            display: none;
         }
-        .tab-buttons { display: flex; justify-content: space-around; margin-top: 20px; }
+        .tab-buttons {
+            display: flex;
+            justify-content: center;
+            margin-top: 30px;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+        }
         .tab-button {
-            padding: 10px 20px; background-color: #ddd; border: none;
-            border-radius: 4px; cursor: pointer; transition: background-color 0.3s; color: #333;
+            padding: 12px 25px;
+            margin: 5px;
+            background-color: #fff;
+            border: 2px solid var(--secondary-color);
+            border-radius: 30px;
+            cursor: pointer;
+            transition: background-color 0.3s, color 0.3s;
+            color: var(--secondary-color);
+            font-weight: 500;
+            white-space: nowrap;
         }
-        .tab-button.active { background-color: #4CAF50; color: white; }
-        .section { display: none; padding-top: 20px; }
-        .section.active { display: block; }
+        .tab-button.active {
+            background-color: var(--secondary-color);
+            color: #fff;
+        }
+        .tab-button:hover {
+            background-color: var(--secondary-color);
+            color: #fff;
+        }
+        .section {
+            display: none;
+            padding-top: 30px;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        .section.active {
+            display: block;
+        }
         /* Map Styling */
         #map {
-            height: 600px; /* Increased height for better visibility */
+            height: 500px;
             width: 100%;
-            margin-top: 20px;
+            margin-top: 30px;
+            border-radius: var(--border-radius);
+            overflow: hidden;
         }
         /* Loading Spinner Styling */
         #loading-spinner {
@@ -58,39 +171,55 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background-color: rgba(255, 255, 255, 0.8);
-            padding: 20px;
-            border-radius: 8px;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 30px;
+            border-radius: var(--border-radius);
             text-align: center;
-            display: none; /* Initially hidden */
-            z-index: 1000; /* Ensure it's on top */
+            display: none;
+            z-index: 1000;
         }
-        /* Input Error Styling */
-        .input-error {
-            border-color: #e74c3c; /* Red border for errors */
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                margin: 20px;
+                padding: 20px;
+            }
+            h2 {
+                font-size: 24px;
+            }
+            h3 {
+                font-size: 20px;
+            }
+            button {
+                font-size: 16px;
+            }
+            select, input, textarea {
+                font-size: 14px;
+            }
+            .tab-buttons {
+                flex-wrap: nowrap;
+                overflow-x: auto;
+            }
         }
     </style>
-    <!-- Include Leaflet CSS and JS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-    <!-- Include MarkerCluster CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-    <!-- Include MarkerCluster JS -->
-    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-    <!-- Include Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <div class="container">
         <h2>Natural Disaster Risk Assessment</h2>
 
         <!-- Loading Spinner -->
-        <div id="loading-spinner">sd
-            <p>Loading...</p>
+        <div id="loading-spinner">
+            <i class="fas fa-spinner fa-pulse fa-2x"></i>
+            <p>Please wait...</p>
         </div>
-        <!-- Tab Navigation for Main Sections -->
-        <div class="tab-buttons">
+
+        <!-- Main Tab Navigation for Sections -->
+        <div class="tab-buttons main-tabs">
             <button class="tab-button active" onclick="showSection('recognition')">Recognition</button>
             <button class="tab-button" onclick="showSection('response')">Response</button>
             <button class="tab-button" onclick="showSection('recovery')">Recovery</button>
@@ -98,14 +227,15 @@
 
         <!-- Recognition Section -->
         <div id="recognition" class="section active">
-            <h3>Risk Score Calculations</h3>
-            <div class="tab-buttons">
+            <!-- Sub Tab Navigation within Recognition -->
+            <div class="tab-buttons sub-tabs">
                 <button class="tab-button active" onclick="showForm('base')">Base Risk Score</button>
                 <button class="tab-button" onclick="showForm('predictive')">Predictive Risk Score</button>
             </div>
 
             <!-- Base Risk Score Form -->
             <div id="base" class="section active">
+                <h3>Base Risk Score</h3>
                 <form id="base-risk-form">
                     <label for="state">State:</label>
                     <input type="text" id="state" name="state" placeholder="Enter state name" required>
@@ -121,31 +251,27 @@
                         {% endfor %}
                     </select>
 
-                    <button type="button" onclick="calculateBaseRisk(); getRecoveryGuidance(); getResponseGuidance();">Calculate Base Risk</button>
+                    <button type="button" onclick="calculateBaseRisk(); getResponseGuidance(); getRecoveryGuidance();">Calculate Base Risk</button>
                     <div class="result" id="base-result"></div>
-                    <div class="error" id="base-error" style="display: none;"></div>
+                    <div class="error" id="base-error"></div>
                     <!-- Map Container -->
                     <div id="map"></div>
                 </form>
             </div>
 
             <!-- Predictive Risk Score Form -->
-            <style>
-                #time {
-                    width: 875px;
-                }
-            </style>
             <div id="predictive" class="section">
+                <h3>Predictive Risk Score</h3>
                 <form id="predictive-risk-form">
                     <label for="time">Future Period (Years):</label>
-                    <input type="range" id="time" name="time" min="0" max="50"  value="0" oninput="updateTimeValue(this.value)">
+                    <input type="range" id="time" name="time" min="0" max="50" value="0" oninput="updateTimeValue(this.value)">
                     <span id="time-value">0</span> years
 
                     <button type="button" onclick="calculatePredictiveRisk()">Calculate Predictive Risk</button>
                     <div class="result" id="predictive-result"></div>
 
                     <!-- Canvas for the chart -->
-                    <canvas id="predictiveChart" width="400" height="200"></canvas>
+                    <canvas id="predictiveChart"></canvas>
                 </form>
             </div>
         </div>
@@ -163,24 +289,20 @@
         <!-- Recovery Section -->
         <div id="recovery" class="section">
             <h3>Recovery Guidance</h3>
-            <p>Get customized recovery guidance by asking a question.</p>
+            <p>Get customized recovery guidance by clicking the button.</p>
             <form id="recovery-form">
-                <div class = "invisible-textbox">
-                    <textarea id="prompt" name="prompt" rows="4" display="none"></textarea>
-                </div>
-                <button type="button" onclick="getRecoveryGuidance()">Get Guidance</button>
+                <button type="button" onclick="getRecoveryGuidance()">Get Recovery Guidance</button>
             </form>
             <div class="result" id="recovery-result"></div>
         </div>
     </div>
 
-    <style>
-        .invisible-textbox {
-            display: none; /* Hide the textbox while keeping it accessible */
-        }
-    </style>
-
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Include Leaflet JS -->
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <!-- Include MarkerCluster JS -->
+    <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
+    <!-- Include Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <script>
         // Declare map and marker variables in the global scope
