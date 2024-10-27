@@ -52,6 +52,7 @@
             color: var(--primary-color);
             margin-bottom: 40px;
             position: relative;
+            font-size: 65px;
         }
         h2::after {
             content: '';
@@ -67,6 +68,7 @@
             margin-bottom: 20px;
             font-weight: 500;
             text-align: center;
+            font-size: 25px;
         }
         label {
             display: block;
@@ -425,13 +427,13 @@
                     let iconHtml = "";
 
                     if (data.risk_score < 35) {
-                        iconHtml = '<i class="fas fa-info-circle" style="color: #63E6BE;"></i>'; // Low risk
+                        iconHtml = '<i class="fas fa-exclamation-triangle" style="color: #63E6BE;"></i>'; // Low risk
                     }
                     else if (data.risk_score < 65) {
                         iconHtml = `<i class="fas fa-exclamation-triangle" style="color: #FFD43B;"></i>`; // Medium risk
                     }
                     else {
-                        iconHtml = '<i class="fas fa-bomb" style="color: #e66565;"></i>'; // High risk
+                        iconHtml = '<i class="fas fa-exclamation-triangle" style="color: #e66565;"></i>'; // High risk
                     }
 
                      // Show results
