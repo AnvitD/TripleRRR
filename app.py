@@ -93,7 +93,7 @@ def predict():
         # Validate if the county exists within the selected state
         counties_in_state = [c.lower() for c in state_to_counties[state_normalized]]
         if county_normalized not in counties_in_state:
-            return jsonify({'error': f"Invalid county: '{county}' does not belong to '{state} or is not in dataset'."}), 400
+            return jsonify({'error': f"Invalid county: '{county}' does not belong to '{state}' or is not in dataset."}), 400
 
         # Fetch the correctly cased state and county from the dataset
         # to maintain consistency with the model's expectations

@@ -113,22 +113,27 @@
             background-color: #149174;
             transform: translateY(-2px);
         }
-        .result, .error {
+        .result, .error, .output {
             margin-top: 30px;
             padding: 20px;
             border-radius: var(--border-radius);
             font-size: 16px;
             line-height: 1.6;
-            display: none;
+            {#display: none;#}
         }
         .result {
             background-color: #ecf0f1;
             color: var(--text-color);
+            display: none;
         }
         .error {
             background-color: #f8d7da;
             color: #c0392b;
             display: none;
+        }
+        .output {
+            background-color: #ecf0f1;
+            color: var(--text-color);
         }
         .tab-buttons {
             display: flex;
@@ -176,6 +181,7 @@
             margin-top: 30px;
             border-radius: var(--border-radius);
             overflow: hidden;
+            position: relative;
         }
         /* Loading Spinner Styling */
         #loading-spinner {
@@ -304,7 +310,7 @@
         <!-- Response Section -->
         <div id="response" class="section">
             <h3>Response Guidance</h3>
-            <div class="result" id="response-result"></div>
+            <div class="output" id="response-output"></div>
             <!-- Search Bar with Search Button -->
             <div class="search-container" style="margin-bottom: 10px;">
                 <input type="text" id="city-search" placeholder="Search for Evacuation Cities..." style="width: 80%; padding: 10px; border-radius: 5px; border: 1px solid #ccc;">
@@ -317,7 +323,7 @@
         <!-- Recovery Section -->
         <div id="recovery" class="section">
             <h3>Recovery Guidance</h3>
-            <div class="result" id="recovery-result"></div>
+            <div class="output" id="recovery-output"></div>
         </div>
     </div>
 
@@ -411,7 +417,7 @@
             const requestData = { state, county, disaster };
 
             // Show loading spinner
-            document.getElementById('loading-spinner').style.display = 'block';
+            {#document.getElementById('loading-spinner').style.display = 'block';#}
 
             try {
                 const response = await fetch('/predict', {
@@ -494,6 +500,7 @@
             const location = `${county}, ${state}`;
             try {
                 // Use Nominatim API to get the latitude and longitude
+                document.getElementById('loading-spinner').style.display = 'block';
                 const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(location)}&format=json&limit=1`);
                 const data = await response.json();
 
@@ -537,6 +544,9 @@
             } catch (error) {
                 console.error('Error displaying map:', error);
                 document.getElementById('response-result').innerHTML += '<br>Error displaying map.';
+            }
+            finally {
+                document.getElementById('loading-spinner').style.display = 'none';
             }
         }
 
@@ -766,9 +776,10 @@
 
         // Function to get response guidance
         async function getResponseGuidance() {
+            document.getElementById('response-output').innerHTML = `Watson is generating guidelines . . .`;
 
-            // Show loading spinner
-            document.getElementById('loading-spinner').style.display = 'block';
+            {#// Show loading spinner#}
+            {#document.getElementById('loading-spinner').style.display = 'block';#}
 
             try {
                 const response = await fetch('/response', {
@@ -782,17 +793,17 @@
                 const data = await response.json();
 
                 if (!response.ok) {
-                    document.getElementById('response-result').innerHTML = `Error: ${data.error}`;
+                    document.getElementById('response-output').innerHTML = `Error: ${data.error}`;
                     return;
                 }
 
-                document.getElementById('response-result').innerHTML = data.response;
-
                 // After getting response guidance, display the map
                 await displayMap(currentState, currentCounty);
+
+                document.getElementById('response-output').innerHTML = data.response;
             } catch (error) {
                 console.error('Error getting response guidance:', error);
-                document.getElementById('response-result').innerHTML = `An unexpected error occurred. Please try again later.`;
+                document.getElementById('response-output').innerHTML = `An unexpected error occurred. Please try again later.`;
             } finally {
                 // Hide loading spinner
                 document.getElementById('loading-spinner').style.display = 'none';
@@ -801,6 +812,7 @@
 
         // Function to get recovery guidance
         async function getRecoveryGuidance() {
+            document.getElementById('recovery-output').innerHTML = `Watson is generating guidelines . . .`;
             try {
                 const response = await fetch('/recovery', {
                     method: 'POST',
@@ -813,14 +825,18 @@
                 const data = await response.json();
 
                 if (!response.ok) {
-                    document.getElementById('recovery-result').innerHTML = `Error: ${data.error}`;
+                    document.getElementById('recovery-output').innerHTML = `Error: ${data.error}`;
                     return;
                 }
 
-                document.getElementById('recovery-result').innerHTML = data.response;
+                document.getElementById('recovery-output').innerHTML = data.response;
             } catch (error) {
                 console.error('Error getting recovery guidance:', error);
-                document.getElementById('recovery-result').innerHTML = `An unexpected error occurred. Please try again later.`;
+                document.getElementById('recovery-output').innerHTML = `An unexpected error occurred. Please try again later.`;
+            }
+            finally {
+                // Hide loading spinner
+                document.getElementById('loading-spinner').style.display = 'none';
             }
         }
 
