@@ -122,7 +122,7 @@
                         {% endfor %}
                     </select>
 
-                    <button type="button" onclick="calculateBaseRisk(); getRecoveryGuidance();">Calculate Base Risk</button>
+                    <button type="button" onclick="calculateBaseRisk(); getRecoveryGuidance(); getResponseGuidance();">Calculate Base Risk</button>
                     <div class="result" id="base-result"></div>
                     <div class="error" id="base-error" style="display: none;"></div>
                     <!-- Map Container -->
@@ -148,8 +148,12 @@
 
         <!-- Response Section -->
         <div id="response" class="section">
-            <h3>Response Actions</h3>
-            <p>Immediate actions to take during a natural disaster.</p>
+            <h3>Response Guidance</h3>
+            <p>Get customized response guidance by clicking the button.</p>
+            <form id="response-form">
+                <button type="button" onclick="getResponseGuidance()">Get Response Guidance</button>
+            </form>
+            <div class="result" id="response-result"></div>
         </div>
 
         <!-- Recovery Section -->
@@ -550,35 +554,61 @@
         }
 
         // Function to get recovery guidance
-        async function getRecoveryGuidance() {
-            const prompt = document.getElementById('prompt').value.trim();
+        function isBaseRiskCalculated() {
+    return typeof baseriskscore !== 'undefined';
+}
 
+// Function to get response guidance
+async function getResponseGuidance() {
 
+    try {
+        const response = await fetch('/response', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({})
+        });
 
-            const requestData = { prompt };
+        const data = await response.json();
 
-            try {
-                const response = await fetch('/recovery', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(requestData)
-                });
-
-                const data = await response.json();
-
-                if (!response.ok) {
-                    document.getElementById('recovery-result').innerHTML = `Error: ${data.error}`;
-                    return;
-                }
-
-                document.getElementById('recovery-result').innerHTML = data.response;
-            } catch (error) {
-                console.error('Error getting recovery guidance:', error);
-                document.getElementById('recovery-result').innerHTML = `An unexpected error occurred. Please try again later.`;
-            }
+        if (!response.ok) {
+            document.getElementById('response-result').innerHTML = `Error: ${data.error}`;
+            return;
         }
+
+        document.getElementById('response-result').innerHTML = data.response;
+    } catch (error) {
+        console.error('Error getting response guidance:', error);
+        document.getElementById('response-result').innerHTML = `An unexpected error occurred. Please try again later.`;
+    }
+}
+
+// Function to get recovery guidance
+async function getRecoveryGuidance() {
+
+    try {
+        const response = await fetch('/recovery', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({})
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            document.getElementById('recovery-result').innerHTML = `Error: ${data.error}`;
+            return;
+        }
+
+        document.getElementById('recovery-result').innerHTML = data.response;
+    } catch (error) {
+        console.error('Error getting recovery guidance:', error);
+        document.getElementById('recovery-result').innerHTML = `An unexpected error occurred. Please try again later.`;
+    }
+}
     </script>
 </body>
 </html>
