@@ -254,8 +254,6 @@
                     <button type="button" onclick="calculateBaseRisk(); getResponseGuidance(); getRecoveryGuidance();">Calculate Base Risk</button>
                     <div class="result" id="base-result"></div>
                     <div class="error" id="base-error"></div>
-                    <!-- Map Container -->
-                    <div id="map"></div>
                 </form>
             </div>
 
@@ -284,6 +282,8 @@
                 <button type="button" onclick="getResponseGuidance()">Get Response Guidance</button>
             </form>
             <div class="result" id="response-result"></div>
+            <!-- Map Container -->
+            <div id="map"></div>
         </div>
 
         <!-- Recovery Section -->
@@ -309,27 +309,34 @@
         let map;
         let marker;
 
-        // Initialize cluster groups for gas stations and large stores
+        // Initialize cluster groups for gas stations, large stores, and evacuation cities
         let gasStationsCluster = L.markerClusterGroup();
         let largeStoresCluster = L.markerClusterGroup();
+        let evacuationCitiesCluster = L.markerClusterGroup();
 
         // Flag to ensure layer controls are added only once
         let layerControlsAdded = false;
 
         // Define custom icons
         const gasStationIcon = L.icon({
-
             iconUrl: 'https://i.im.ge/2024/10/27/k8uk39.gas-station.png',
             iconSize: [50, 50],
-            iconAnchor: [12, 25],
-            popupAnchor: [0, -25]
+            iconAnchor: [25, 50],
+            popupAnchor: [0, -50]
         });
 
         const largeStoreIcon = L.icon({
             iconUrl: 'https://i.im.ge/2024/10/27/k8uVTF.supermarket.png',
             iconSize: [50, 50],
-            iconAnchor: [12, 25],
-            popupAnchor: [0, -25]
+            iconAnchor: [25, 50],
+            popupAnchor: [0, -50]
+        });
+
+        const cityIcon = L.icon({
+            iconUrl: 'https://i.im.ge/2024/10/27/k8u0Hf.city.png', // Replace with a valid URL to a city icon
+            iconSize: [50, 50],
+            iconAnchor: [25, 50],
+            popupAnchor: [0, -50]
         });
 
         // Function to show sections based on tab clicks
@@ -338,6 +345,12 @@
             document.getElementById(sectionId).classList.add('active');
             document.querySelectorAll('.tab-button').forEach(button => button.classList.remove('active'));
             document.querySelector(`button[onclick="showSection('${sectionId}')"]`).classList.add('active');
+
+            // If the response tab is activated and the map hasn't been initialized yet
+            if (sectionId === 'response' && !map && typeof baseriskscore !== 'undefined') {
+                // Initialize the map using the previously calculated state and county
+                displayMap(currentState, currentCounty);
+            }
         }
 
         // Function to show forms within the Recognition section
@@ -348,12 +361,25 @@
             document.querySelector(`button[onclick="showForm('${formId}')"]`).classList.add('active');
         }
 
+        // Variables to store current state and county for map initialization
+        let currentState = '';
+        let currentCounty = '';
+
         // Function to calculate the base risk score
         let baseriskscore;
         async function calculateBaseRisk() {
             const state = document.getElementById('state').value.trim();
             const county = document.getElementById('county').value.trim();
             const disaster = document.getElementById('disaster').value;
+
+            if (!state || !county || !disaster) {
+                alert("Please fill in all required fields.");
+                return;
+            }
+
+            // Store current state and county for later use
+            currentState = state;
+            currentCounty = county;
 
             // Prepare the request data
             const requestData = { state, county, disaster };
@@ -385,21 +411,22 @@
                     if (map) {
                         gasStationsCluster.clearLayers();
                         largeStoresCluster.clearLayers();
+                        evacuationCitiesCluster.clearLayers();
                     }
                 } else {
                     // Display risk score
                     baseriskscore = data.risk_score;
 
-                    let iconClass = "";
+                    let iconHtml = "";
 
                     if (data.risk_score < 35) {
-                      iconHtml = '<i class="fa-solid fa-triangle-exclamation" style="color: #63E6BE;"></i>'; // Low risk
+                        iconHtml = '<i class="fas fa-info-circle" style="color: #63E6BE;"></i>'; // Low risk
                     }
                     else if (data.risk_score < 65) {
-                      iconHtml = `<i class="fa-solid fa-triangle-exclamation" style="color: #FFD43B;"></i>`; // Medium risk
+                        iconHtml = `<i class="fas fa-exclamation-triangle" style="color: #FFD43B;"></i>`; // Medium risk
                     }
                     else {
-                      iconHtml = '<i class="fa-solid fa-triangle-exclamation" style="color: #e66565;"></i>'; // High risk
+                        iconHtml = '<i class="fas fa-bomb" style="color: #e66565;"></i>'; // High risk
                     }
 
                     document.getElementById("base-result").innerHTML = `${iconHtml} Base Risk Score: ${data.risk_score} (Calculated for ${disaster} in ${county}, ${state})`;
@@ -409,8 +436,6 @@
                     errorDiv.innerHTML = '';
                     errorDiv.style.display = 'none';
 
-                    // Display the map
-                    await displayMap(state, county);
                 }
             } catch (error) {
                 console.error('Error calculating base risk:', error);
@@ -425,6 +450,7 @@
                 if (map) {
                     gasStationsCluster.clearLayers();
                     largeStoresCluster.clearLayers();
+                    evacuationCitiesCluster.clearLayers();
                 }
             } finally {
                 // Hide loading spinner
@@ -457,6 +483,7 @@
                         // Add cluster groups to the map
                         map.addLayer(gasStationsCluster);
                         map.addLayer(largeStoresCluster);
+                        map.addLayer(evacuationCitiesCluster);
                     } else {
                         // If map already exists, update its view
                         map.setView([lat, lon], 10);
@@ -474,11 +501,11 @@
                     // Query and display nearby amenities
                     await fetchNearbyAmenities(lat, lon);
                 } else {
-                    document.getElementById('base-result').innerHTML += '<br>Location not found on the map.';
+                    document.getElementById('response-result').innerHTML += '<br>Location not found on the map.';
                 }
             } catch (error) {
                 console.error('Error displaying map:', error);
-                document.getElementById('base-result').innerHTML += '<br>Error displaying map.';
+                document.getElementById('response-result').innerHTML += '<br>Error displaying map.';
             }
         }
 
@@ -487,20 +514,25 @@
             // Define the search radius in meters (40 km)
             const radius = 40000;
 
-            // Overpass QL query to fetch gas stations, convenience stores, supermarkets, and department stores within the radius
+            // Overpass QL query to fetch gas stations, convenience stores, supermarkets, department stores, and evacuation cities within the radius
             const query = `
                 [out:json][timeout:25];
                 (
                     node["amenity"="gas_station"](around:${radius},${lat},${lon});
-                    node["shop"="convenience"](around:${radius},${lat},${lon});
                     way["amenity"="gas_station"](around:${radius},${lat},${lon});
-                    way["shop"="convenience"](around:${radius},${lat},${lon});
                     relation["amenity"="gas_station"](around:${radius},${lat},${lon});
+
+                    node["shop"="convenience"](around:${radius},${lat},${lon});
+                    way["shop"="convenience"](around:${radius},${lat},${lon});
                     relation["shop"="convenience"](around:${radius},${lat},${lon});
 
                     node["shop"~"supermarket|department_store"](around:${radius},${lat},${lon});
                     way["shop"~"supermarket|department_store"](around:${radius},${lat},${lon});
                     relation["shop"~"supermarket|department_store"](around:${radius},${lat},${lon});
+
+                    node["place"~"city|town|village"](around:${radius},${lat},${lon});
+                    way["place"~"city|town|village"](around:${radius},${lat},${lon});
+                    relation["place"~"city|town|village"](around:${radius},${lat},${lon});
                 );
                 out center;
             `;
@@ -520,6 +552,7 @@
                 // Clear existing markers in the cluster groups
                 gasStationsCluster.clearLayers();
                 largeStoresCluster.clearLayers();
+                evacuationCitiesCluster.clearLayers();
 
                 // Iterate through the returned elements
                 data.elements.forEach(element => {
@@ -539,11 +572,13 @@
                             amenityType = 'Supermarket';
                         } else if (element.tags.shop === 'department_store') {
                             amenityType = 'Department Store';
+                        } else if (element.tags.place === 'city' || element.tags.place === 'town' || element.tags.place === 'village') {
+                            amenityType = 'Evacuation City';
                         }
                     }
 
-                    // Exclude markers with name 'Unnamed'
-                    if (name === 'Unnamed') {
+                    // Exclude markers with name 'Unnamed' except for evacuation cities
+                    if (amenityType !== 'Evacuation City' && name === 'Unnamed') {
                         return; // Skip this element
                     }
 
@@ -563,17 +598,25 @@
                     }
 
                     // Create a popup content
-                    const popupContent = `<strong>${name}</strong><br>${amenityType}`;
+                    const destination = `${latitude},${longitude}`;
+                    const mapsLink = `<a href="https://www.google.com/maps/dir/?api=1&destination=${destination}" target="_blank">Get Directions</a>`;
+                    const popupContent = `<strong>${name}</strong><br>${amenityType}<br>${mapsLink}`;
 
                     // Add markers to respective cluster groups
                     if (amenityType === 'Gas Station' || amenityType === 'Convenience Store') {
                         L.marker([latitude, longitude], { icon: gasStationIcon })
                             .bindPopup(popupContent)
                             .addTo(gasStationsCluster);
+
                     } else if (amenityType === 'Supermarket' || amenityType === 'Department Store') {
                         L.marker([latitude, longitude], { icon: largeStoreIcon })
                             .bindPopup(popupContent)
                             .addTo(largeStoresCluster);
+
+                    } else if (amenityType === 'Evacuation City') {
+                        L.marker([latitude, longitude], { icon: cityIcon })
+                            .bindPopup(popupContent)
+                            .addTo(evacuationCitiesCluster);
                     }
                 });
 
@@ -585,14 +628,16 @@
             } catch (error) {
                 console.error('Error fetching nearby amenities:', error);
                 // Optionally, display an error message to the user
+                document.getElementById('response-result').innerHTML += '<br>Error fetching nearby amenities.';
             }
         }
 
-        // Function to add layer controls for gas stations and large stores
+        // Function to add layer controls for gas stations, large stores, and evacuation cities
         function addLayerControls() {
             const overlays = {
                 "Gas Stations & Convenience Stores": gasStationsCluster,
-                "Large Stores": largeStoresCluster
+                "Large Stores": largeStoresCluster,
+                "Evacuation Cities": evacuationCitiesCluster
             };
 
             L.control.layers(null, overlays, { collapsed: false, position: 'topright' }).addTo(map);
@@ -680,62 +725,65 @@
             document.getElementById('time-value').innerText = value;
         }
 
+        // Function to get response guidance
+        async function getResponseGuidance() {
+
+            // Show loading spinner
+            document.getElementById('loading-spinner').style.display = 'block';
+
+            try {
+                const response = await fetch('/response', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ state: currentState, county: currentCounty })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    document.getElementById('response-result').innerHTML = `Error: ${data.error}`;
+                    return;
+                }
+
+                document.getElementById('response-result').innerHTML = data.response;
+
+                // After getting response guidance, display the map
+                await displayMap(currentState, currentCounty);
+            } catch (error) {
+                console.error('Error getting response guidance:', error);
+                document.getElementById('response-result').innerHTML = `An unexpected error occurred. Please try again later.`;
+            } finally {
+                // Hide loading spinner
+                document.getElementById('loading-spinner').style.display = 'none';
+            }
+        }
+
         // Function to get recovery guidance
-        function isBaseRiskCalculated() {
-    return typeof baseriskscore !== 'undefined';
-}
+        async function getRecoveryGuidance() {
+            try {
+                const response = await fetch('/recovery', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({})
+                });
 
-// Function to get response guidance
-async function getResponseGuidance() {
+                const data = await response.json();
 
-    try {
-        const response = await fetch('/response', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({})
-        });
+                if (!response.ok) {
+                    document.getElementById('recovery-result').innerHTML = `Error: ${data.error}`;
+                    return;
+                }
 
-        const data = await response.json();
-
-        if (!response.ok) {
-            document.getElementById('response-result').innerHTML = `Error: ${data.error}`;
-            return;
+                document.getElementById('recovery-result').innerHTML = data.response;
+            } catch (error) {
+                console.error('Error getting recovery guidance:', error);
+                document.getElementById('recovery-result').innerHTML = `An unexpected error occurred. Please try again later.`;
+            }
         }
-
-        document.getElementById('response-result').innerHTML = data.response;
-    } catch (error) {
-        console.error('Error getting response guidance:', error);
-        document.getElementById('response-result').innerHTML = `An unexpected error occurred. Please try again later.`;
-    }
-}
-
-// Function to get recovery guidance
-async function getRecoveryGuidance() {
-
-    try {
-        const response = await fetch('/recovery', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({})
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            document.getElementById('recovery-result').innerHTML = `Error: ${data.error}`;
-            return;
-        }
-
-        document.getElementById('recovery-result').innerHTML = data.response;
-    } catch (error) {
-        console.error('Error getting recovery guidance:', error);
-        document.getElementById('recovery-result').innerHTML = `An unexpected error occurred. Please try again later.`;
-    }
-}
     </script>
 </body>
 </html>
