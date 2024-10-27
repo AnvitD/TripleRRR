@@ -67,28 +67,28 @@ def predict():
     Returns JSON response with 'risk_score' or 'error'.
     """
     if request.is_json:
-        global state, county, disaster
+        global state_new, county, disaster
         data_input = request.get_json()
-        state = data_input.get('state')
+        state_new = data_input.get('state')
         county = data_input.get('county')
         disaster = data_input.get('disaster')
 
         # Validate input presence
-        if not all([state, county, disaster]):
+        if not all([state_new, county, disaster]):
             return jsonify({'error': 'Missing data: state, county, and disaster are required.'}), 400
 
         # Normalize inputs for case-insensitive comparison
-        state_normalized = state.strip().lower()
+        state_normalized = state_new.strip().lower()
         county_normalized = county.strip().lower()
 
         # Validate if the state exists
         if state_normalized not in state_to_counties:
-            return jsonify({'error': f"Invalid state: '{state}'. Please enter a valid state."}), 400
+            return jsonify({'error': f"Invalid state: '{state_new}'. Please enter a valid state."}), 400
 
         # Validate if the county exists within the selected state
         counties_in_state = [c.lower() for c in state_to_counties[state_normalized]]
         if county_normalized not in counties_in_state:
-            return jsonify({'error': f"Invalid county: '{county}' does not belong to '{state} or is not in dataset'."}), 400
+            return jsonify({'error': f"Invalid county: '{county}' does not belong to '{state_new} or is not in dataset'."}), 400
 
         # Fetch the correctly cased state and county from the dataset
         # to maintain consistency with the model's expectations
@@ -121,7 +121,7 @@ def recovery():
     Returns JSON response with 'response' or 'error'.
     """
     if request.is_json:
-        prompt = "For somone who lives in the state:" + state + " and county: " + county + "provide an extremely exhaustive and detailed bulleted list for how they should prepare for a " + disaster + " that is approaching them. Make the list very long and detailed, use proper grammar and be very adamant."
+        prompt = "For somone who lives in the state:" + state_new + " and county: " + county + "provide an extremely exhaustive and detailed bulleted list for how they should prepare for a " + disaster + " that is approaching them. Make the list very long and detailed, use proper grammar and be very adamant."
         """data_input = request.get_json()
         prompt = data_input.get('prompt')"""
 
