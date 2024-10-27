@@ -57,6 +57,7 @@
             color: var(--primary-color);
             margin-bottom: 40px;
             position: relative;
+            font-size: 65px;
         }
         h2::after {
             content: '';
@@ -72,6 +73,7 @@
             margin-bottom: 20px;
             font-weight: 500;
             text-align: center;
+            font-size: 25px;
         }
         label {
             display: block;
@@ -80,7 +82,7 @@
             font-weight: 500;
         }
         select, input, textarea {
-            width: 100%;
+            width: 97%;
             padding: 14px;
             margin-top: 10px;
             border-radius: var(--border-radius);
@@ -117,6 +119,7 @@
             border-radius: var(--border-radius);
             font-size: 16px;
             line-height: 1.6;
+            display: none;
         }
         .result {
             background-color: #ecf0f1;
@@ -161,6 +164,10 @@
         }
         .section.active {
             display: block;
+        }
+        #disaster {
+            color: dimgray;
+            width: auto;
         }
         /* Map Styling */
         #map {
@@ -352,7 +359,7 @@
         });
 
         const cityIcon = L.icon({
-            iconUrl: 'https://i.im.ge/2024/10/27/k8u0Hf.city.png', // Replace with a valid URL to a city icon
+            iconUrl: 'https://i.im.ge/2024/10/27/k89fVD.building.png',
             iconSize: [50, 50],
             iconAnchor: [25, 50],
             popupAnchor: [0, -50]
@@ -424,7 +431,9 @@
                     errorDiv.style.display = 'block';
 
                     // Clear any previous result
-                    document.getElementById("base-result").innerHTML = '';
+                    const resultDiv = document.getElementById("base-result");
+                    resultDiv.innerHTML = '';
+                    resultDiv.style.display = 'none';
 
                     // Remove existing markers and clusters
                     if (map) {
@@ -439,16 +448,19 @@
                     let iconHtml = "";
 
                     if (data.risk_score < 35) {
-                        iconHtml = '<i class="fas fa-info-circle" style="color: #63E6BE;"></i>'; // Low risk
+                        iconHtml = '<i class="fas fa-exclamation-triangle" style="color: #63E6BE;"></i>'; // Low risk
                     }
                     else if (data.risk_score < 65) {
                         iconHtml = `<i class="fas fa-exclamation-triangle" style="color: #FFD43B;"></i>`; // Medium risk
                     }
                     else {
-                        iconHtml = '<i class="fas fa-bomb" style="color: #e66565;"></i>'; // High risk
+                        iconHtml = '<i class="fas fa-exclamation-triangle" style="color: #e66565;"></i>'; // High risk
                     }
 
-                    document.getElementById("base-result").innerHTML = `${iconHtml} Base Risk Score: ${data.risk_score} (Calculated for ${disaster} in ${county}, ${state})`;
+                    // Show results
+                    const resultDiv = document.getElementById("base-result");
+                    resultDiv.innerHTML = `${iconHtml} Base Risk Score: ${data.risk_score} (Calculated for ${disaster} in ${county}, ${state})`;
+                    resultDiv.style.display = 'block';
 
                     // Hide error message if previously shown
                     const errorDiv = document.getElementById("base-error");
