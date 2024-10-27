@@ -391,7 +391,7 @@
             const requestData = { state, county, disaster };
 
             // Show loading spinner
-            document.getElementById('loading-spinner').style.display = 'block';
+            {#document.getElementById('loading-spinner').style.display = 'block';#}
 
             try {
                 const response = await fetch('/predict', {
@@ -426,13 +426,13 @@
                     baseriskscore = data.risk_score;
 
                     if (data.risk_score < 35) {
-                        iconHtml = '<i class="fas fa-info-circle" style="color: #63E6BE;"></i>'; // Low risk
+                        iconHtml = '<i class="fas fa-exclamation-triangle" style="color: #63E6BE;"></i>'; // Low risk
                     }
                     else if (data.risk_score < 65) {
                         iconHtml = `<i class="fas fa-exclamation-triangle" style="color: #FFD43B;"></i>`; // Medium risk
                     }
                     else {
-                        iconHtml = '<i class="fas fa-bomb" style="color: #e66565;"></i>'; // High risk
+                        iconHtml = '<i class="fas fa-exclamation-triangle" style="color: #e66565;"></i>'; // High risk
                     }
                     // Show results
                     const resultDiv = document.getElementById("base-result");
@@ -462,10 +462,11 @@
                     largeStoresCluster.clearLayers();
                     evacuationCitiesCluster.clearLayers();
                 }
-            } finally {
-                // Hide loading spinner
-                document.getElementById('loading-spinner').style.display = 'none';
             }
+            {#finally {#}
+            {#    // Hide loading spinner#}
+            {#    document.getElementById('loading-spinner').style.display = 'none';#}
+            {# }#}
         }
 
         // Function to display the map and fetch nearby amenities
