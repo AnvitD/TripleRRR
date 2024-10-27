@@ -40,7 +40,7 @@ Step-by-Step Setup
 
 	1.	Clone the Repository:
  ```
- git clone <repository_url>
+ git clone <[repository_url](https://github.com/AnvitD/TripleRRR.git)>
  cd TripleRRR
  ```
 
