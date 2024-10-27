@@ -70,11 +70,12 @@ def predict():
     Returns JSON response with 'risk_score' or 'error'.
     """
     if request.is_json:
-        global state, county, disaster
+        global state, county, disaster, state_new
         data_input = request.get_json()
         state = data_input.get('state')
         county = data_input.get('county')
         disaster = data_input.get('disaster')
+        state_new = state
 
         # Validate input presence
         if not all([state, county, disaster]):
@@ -126,7 +127,7 @@ def recovery():
     if request.is_json:
         prompt = (
         f"You are an expert disaster management assistant. "
-        f"For someone living in {county}, {state}, create a detailed and structured preparation "
+        f"For someone living in {county}, {state_new}, create a detailed and structured preparation "
         f"plan for an approaching {disaster}. Your response should be extremely thorough, "
         f"including bullet points and clear sections (e.g., Personal Preparation, Supplies Checklist, "
         f"Evacuation Tips, and Family Safety Measures). Ensure proper grammar and a professional tone."
