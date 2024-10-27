@@ -118,6 +118,37 @@ def predict():
     else:
         return jsonify({'error': 'Request must be in JSON format.'}), 400
 
+@app.route('/additional_info', methods=['POST'])
+def additional_info():
+    if request.is_json:
+        data_input = request.get_json()
+        state = data_input.get('state')
+        county = data_input.get('county')
+        disaster = data_input.get('disaster')
+
+        # Validate input presence
+        if not all([state, county, disaster]):
+            return jsonify({'error': 'Missing data: state, county, and disaster are required.'}), 400
+
+        # Create the prompt for the AI model
+        prompt = (
+            f"Create a highly detailed Wildlife Animal Impact and Past Disaster Damages Information section regarding {disaster} "
+            f"in {county}, {state_new}. Use proper HTML formatting, including <ul> for bullet lists, "
+            f"<li> for list items, and <h3> or <h4> for headings. Your response should look like "
+            f"a cleanly formatted website section, with separate sections for Surrounding Wildlife Impact (even including specific animals and their endangerments) and "
+            f"Past Natural Disaster Damages in terms of financial loss in the area."
+        )
+
+        try:
+            # Use the watsonx.ai API to get the response
+            response = model_inference.generate_text(prompt)
+            return jsonify({'additional_info': response})
+        except Exception as e:
+            return jsonify({'error': f'Error generating additional information: {str(e)}'}), 500
+    else:
+        return jsonify({'error': 'Request must be in JSON format.'}), 400
+
+
 @app.route('/response', methods=['POST'])
 def response():
     """

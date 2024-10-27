@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Natural Disaster Risk Assessment</title>
+    <title>Triple R Assesment</title>
     <!-- Include Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
     <!-- Include FontAwesome for icons -->
@@ -23,7 +23,7 @@
             --primary-color: #2C3E50;    /* Dark Slate */
             --secondary-color: #18BC9C;  /* Teal */
             --accent-color: #E74C3C;     /* Red */
-            --background-color: #FDFEFE; /* Off-white */
+            --background-color: #6bd9bd; /*  */
             --text-color: #2C3E50;       /* Dark Slate */
             --light-text-color: #7F8C8D; /* Gray */
             --border-radius: 12px;
@@ -40,7 +40,7 @@
         .container {
             max-width: 1000px;
             margin: 40px auto;
-            background-color: #fff;
+            background-color: #ffffff;
             padding: 30px;
             box-shadow: 0 20px 40px rgba(44, 62, 80, 0.2);
             border-radius: var(--border-radius);
@@ -53,7 +53,8 @@
         }
         h2 {
             text-align: center;
-            font-weight: 500;
+            font-size: 40px;
+            font-weight: 1000;
             color: var(--primary-color);
             margin-bottom: 40px;
             position: relative;
@@ -230,7 +231,7 @@
 </head>
 <body>
     <div class="container">
-        <h2>Natural Disaster Risk Assessment</h2>
+        <h2>Triple R Assessment</h2>
 
         <!-- Loading Spinner -->
         <div id="loading-spinner">
@@ -273,6 +274,7 @@
 
                     <button type="button" onclick="calculateBaseRisk(); getResponseGuidance(); getRecoveryGuidance();">Calculate Base Risk</button>
                     <div class="result" id="base-result"></div>
+                    <div class="result" id="additional-info"></div>
                     <div class="error" id="base-error"></div>
                 </form>
             </div>
@@ -360,17 +362,19 @@
 
         // Function to show sections based on tab clicks
         function showSection(sectionId) {
-            document.querySelectorAll('.section').forEach(section => section.classList.remove('active'));
-            document.getElementById(sectionId).classList.add('active');
-            document.querySelectorAll('.tab-button').forEach(button => button.classList.remove('active'));
-            document.querySelector(`button[onclick="showSection('${sectionId}')"]`).classList.add('active');
+    document.querySelectorAll('.section').forEach(section => section.classList.remove('active'));
+    document.getElementById(sectionId).classList.add('active');
+    document.querySelectorAll('.tab-button').forEach(button => button.classList.remove('active'));
+    document.querySelector(`button[onclick="showSection('${sectionId}')"]`).classList.add('active');
 
-            // If the response tab is activated and the map hasn't been initialized yet
-            if (sectionId === 'response' && !map && typeof baseriskscore !== 'undefined') {
-                // Initialize the map using the previously calculated state and county
-                displayMap(currentState, currentCounty);
-            }
+    // If the response tab is activated
+    if (sectionId === 'response') {
+        // Initialize or update the map when the Response tab is activated
+        if (currentState && currentCounty) {
+            displayMap(currentState, currentCounty);
         }
+    }
+}
 
         // Function to show forms within the Recognition section
         function showForm(formId) {
@@ -435,6 +439,7 @@
                 } else {
                     // Display risk score
                     baseriskscore = data.risk_score;
+                    getAdditionalInfo();
 
                     let iconHtml = "";
 
@@ -752,6 +757,63 @@
             document.getElementById('time-value').innerText = value;
         }
 
+        function getAdditionalInfo() {
+    const state = document.getElementById('state').value.trim();
+    const county = document.getElementById('county').value.trim();
+    const disaster = document.getElementById('disaster').value;
+
+    const requestData = { state, county, disaster };
+
+    fetch('/additional_info', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.additional_info) {
+            document.getElementById('additional-info').innerHTML = data.additional_info;
+        } else if (data.error) {
+            document.getElementById('additional-info').innerHTML = `Error: ${data.error}`;
+        }
+    })
+    .catch(error => {
+        console.error('Error fetching additional information:', error);
+        document.getElementById('additional-info').innerHTML = 'An error occurred while fetching additional information.';
+    });
+}
+
+        function getAdditionalInfo() {
+    const state = document.getElementById('state').value.trim();
+    const county = document.getElementById('county').value.trim();
+    const disaster = document.getElementById('disaster').value;
+
+    const requestData = { state, county, disaster };
+
+    fetch('/additional_info', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.additional_info) {
+            document.getElementById('additional-info').innerHTML = data.additional_info;
+        } else if (data.error) {
+            document.getElementById('additional-info').innerHTML = `Error: ${data.error}`;
+        }
+    })
+    .catch(error => {
+        console.error('Error fetching additional information:', error);
+        document.getElementById('additional-info').innerHTML = 'An error occurred while fetching additional information.';
+    });
+}
+
+
         // Function to get response guidance
         async function getResponseGuidance() {
 
@@ -777,7 +839,6 @@
                 document.getElementById('response-result').innerHTML = data.response;
 
                 // After getting response guidance, display the map
-                await displayMap(currentState, currentCounty);
             } catch (error) {
                 console.error('Error getting response guidance:', error);
                 document.getElementById('response-result').innerHTML = `An unexpected error occurred. Please try again later.`;
@@ -835,32 +896,6 @@
                 alert('Evacuation city not found or it does not meet the distance criteria.');
             }
         }
-
-        // Optional: Enhance search with partial matching (Uncomment if desired)
-        /*
-        function searchCityPartial() {
-            const query = document.getElementById('city-search').value.trim().toLowerCase();
-            if (query.length === 0) {
-                alert("Please enter a city name to search.");
-                return;
-            }
-
-            // Find matching markers with partial matching
-            const matchingMarkers = evacuationCitiesCluster.getLayers().filter(marker => {
-                return marker.feature.properties.name.toLowerCase().includes(query);
-            });
-
-            if (matchingMarkers.length > 0) {
-                // Zoom to the first matching marker and open its popup
-                const firstMarker = matchingMarkers[0];
-                map.setView(firstMarker.getLatLng(), 15);
-                firstMarker.openPopup();
-            } else {
-                // Notify the user that the city was not found
-                alert('Evacuation city not found or it does not meet the distance criteria.');
-            }
-        }
-        */
 
     </script>
 </body>
