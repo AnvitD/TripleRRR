@@ -50,10 +50,11 @@ model_inference = ModelInference(
     api_client=client,
     project_id="d0eaa248-e010-412c-8cf8-ba046b28f236",
     params={
-        "max_new_tokens": 500,
-        "temperature": 0.7,     
-        "top_k": 50,            
-        "top_p": 0.9 
+        "max_new_tokens": 1000,
+        "temperature": 0.7,
+        "top_k": 50,
+        "top_p": 0.9,
+        "stop": [".\n", "\n\n"]
     }
 )
 
@@ -117,6 +118,27 @@ def predict():
     else:
         return jsonify({'error': 'Request must be in JSON format.'}), 400
 
+@app.route('/response', methods=['POST'])
+def response():
+    """
+    Handle AJAX POST requests to get response guidance.
+    Returns JSON response with 'response' or 'error'.
+    """
+    prompt = (
+        f"Create a highly detailed immediate action plan for an ongoing {disaster} "
+        f"in {county}, {state_new}. Use proper HTML formatting, including <ul> for bullet lists, "
+        f"<li> for list items, and <h3> or <h4> for headings. Your response should look like "
+        f"a cleanly formatted website section, with separate sections for Evacuation Procedures, "
+        f"Emergency Contacts, and Safety Measures."
+    )
+
+    try:
+        # Use the watsonx.ai API to get the response
+        response = model_inference.generate_text(prompt)
+        return jsonify({'response': response})
+    except Exception as e:
+        return jsonify({'error': f'Error generating response: {str(e)}'}), 500
+
 @app.route('/recovery', methods=['POST'])
 def recovery():
     """
@@ -126,13 +148,12 @@ def recovery():
     """
     if request.is_json:
         prompt = (
-            f"Create a highly detailed preparation plan for an approaching {disaster} "
+            f"Create a highly detailed recovery plan for an approaching {disaster} "
             f"in {county}, {state_new}. Use proper HTML formatting, including <ul> for bullet lists, "
             f"<li> for list items, and <h3> or <h4> for headings. Your response should look like "
-            f"a cleanly formatted website section, with separate sections for Personal Preparation, "
-            f"Supplies Checklist, and Home Preparation."
+            f"a cleanly formatted website section, with separate sections for Post-Disaster Damage Control, "
+            f"Post-Disaster Mental and Physichal Health Steps, and Links to Helpful Websites that aid with Disaster Rehabilitation."
         )
-
 
         """data_input = request.get_json()
         prompt = data_input.get('prompt')"""
