@@ -129,7 +129,7 @@ def response():
         f"in {county}, {state_new}. Use proper HTML formatting, including <ul> for bullet lists, "
         f"<li> for list items, and <h3> or <h4> for headings. Your response should look like "
         f"a cleanly formatted website section, with separate sections for Evacuation Procedures, "
-        f"Emergency Contacts, and Safety Measures."
+        f"Emergency Contacts, Safety Measures, and A LONG LIST OF nearby disaster evacuation cities."
     )
 
     try:

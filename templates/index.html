@@ -11,6 +11,11 @@
     <!-- Include MarkerCluster CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
+    <!-- Leaflet Search CSS (Optional: Remove if using custom search) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-search/dist/leaflet-search.min.css">
+
+    <!-- Leaflet Search JS (Optional: Remove if using custom search) -->
+    <script src="https://unpkg.com/leaflet-search/dist/leaflet-search.min.js"></script>
 
     <style>
         /* Root Variables for Colors */
@@ -213,6 +218,13 @@
                 overflow-x: auto;
             }
         }
+
+        .leaflet-control-search input {
+            width: 200px;
+            padding: 5px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
     </style>
 </head>
 <body>
@@ -292,13 +304,29 @@
             <div id="map"></div>
         </div>
 
+        <!-- Response Section -->
+        <div id="response" class="section">
+            <h3>Response Guidance</h3>
+            <div class="result" id="response-result"></div>
+            <!-- Search Bar with Search Button -->
+            <div class="search-container" style="margin-bottom: 10px;">
+                <input type="text" id="city-search" placeholder="Search for Evacuation Cities..." style="width: 80%; padding: 10px; border-radius: 5px; border: 1px solid #ccc;">
+                <button onclick="searchCity()" style="padding: 10px; border-radius: 5px; border: none; background-color: var(--secondary-color); color: #fff; cursor: pointer;">Search</button>
+            </div>
+            <!-- Map Container -->
+            <div id="map"></div>
+        </div>
+
         <!-- Recovery Section -->
         <div id="recovery" class="section">
             <h3>Recovery Guidance</h3>
-            <form id="recovery-form">
-                <button type="button" onclick="getRecoveryGuidance()">Get Recovery Guidance</button>
-            </form>
             <div class="result" id="recovery-result"></div>
+        </div>
+
+        <!-- Response Section -->
+        <div id="response" class="section">
+            <h3>Response Actions</h3>
+            <p>Immediate actions to take during a natural disaster.</p>
         </div>
     </div>
 
@@ -308,6 +336,8 @@
     <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
     <!-- Include Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Leaflet Search JS (Optional: Remove if not using Leaflet-Search) -->
+    <script src="https://unpkg.com/leaflet-search/dist/leaflet-search.min.js"></script>
 
     <script>
         // Declare map and marker variables in the global scope
@@ -447,6 +477,92 @@
                     errorDiv.style.display = 'none';
 
                 }
+                const data = await response.json();
+
+                // Clear existing markers in the cluster groups
+                gasStationsCluster.clearLayers();
+                largeStoresCluster.clearLayers();
+                evacuationCitiesCluster.clearLayers();
+
+                // Iterate through the returned elements
+                data.elements.forEach(element => {
+                    let amenityType = '';
+                    let name = 'Unnamed';
+
+                    if (element.tags) {
+                        if (element.tags.name) {
+                            name = element.tags.name;
+                        }
+
+                        if (element.tags.amenity === 'gas_station') {
+                            amenityType = 'Gas Station';
+                        } else if (element.tags.shop === 'convenience') {
+                            amenityType = 'Convenience Store';
+                        } else if (element.tags.shop === 'supermarket') {
+                            amenityType = 'Supermarket';
+                        } else if (element.tags.shop === 'department_store') {
+                            amenityType = 'Department Store';
+                        } else if (element.tags.place === 'city' || element.tags.place === 'town' || element.tags.place === 'village') {
+                            amenityType = 'Evacuation City';
+                        }
+                    }
+
+                    // Exclude markers with name 'Unnamed' except for evacuation cities
+                    if (amenityType !== 'Evacuation City' && name === 'Unnamed') {
+                        return; // Skip this element
+                    }
+
+                    // Determine the coordinates
+                    let latitude = element.lat;
+                    let longitude = element.lon;
+
+                    // For ways and relations, use the center
+                    if (!latitude || !longitude) {
+                        if (element.center) {
+                            latitude = element.center.lat;
+                            longitude = element.center.lon;
+                        } else {
+                            // Skip if no coordinates are available
+                            return;
+                        }
+                    }
+
+                    // Create a popup content
+                    const destination = `${latitude},${longitude}`;
+                    const mapsLink = `<a href="https://www.google.com/maps/dir/?api=1&destination=${destination}" target="_blank">Get Directions</a>`;
+                    const popupContent = `<strong>${name}</strong><br>${amenityType}<br>${mapsLink}`;
+
+                    // Add markers to respective cluster groups
+                    if (amenityType === 'Gas Station' || amenityType === 'Convenience Store') {
+                        L.marker([latitude, longitude], { icon: gasStationIcon })
+                            .bindPopup(popupContent)
+                            .addTo(gasStationsCluster);
+
+                    } else if (amenityType === 'Supermarket' || amenityType === 'Department Store') {
+                        L.marker([latitude, longitude], { icon: largeStoreIcon })
+                            .bindPopup(popupContent)
+                            .addTo(largeStoresCluster);
+
+                    } else if (amenityType === 'Evacuation City') {
+                        const marker = L.marker([latitude, longitude], { icon: cityIcon })
+                            .bindPopup(popupContent)
+                            .addTo(evacuationCitiesCluster);
+
+                        // Assign a 'name' property to the marker for searching
+                        marker.feature = {
+                            properties: {
+                                name: name
+                            }
+                        };
+                    }
+                });
+
+                // Add layer controls if not already added
+                if (!layerControlsAdded) {
+                    addLayerControls();
+                    layerControlsAdded = true;
+                }
+
             } catch (error) {
                 console.error('Error calculating base risk:', error);
                 const errorDiv = document.getElementById("base-error");
@@ -558,8 +674,18 @@
                     }
                 });
 
-                const data = await response.json();
+        // Function to add layer controls for gas stations, large stores, and evacuation cities
+        function addLayerControls() {
+            const overlays = {
+                "Gas Stations & Convenience Stores": gasStationsCluster,
+                "Large Stores": largeStoresCluster,
+                "Evacuation Cities": evacuationCitiesCluster
+            };
 
+            L.control.layers(null, overlays, { collapsed: false, position: 'topright' }).addTo(map);
+        }
+
+        // Function to calculate predictive risk score
                 // Clear existing markers in the cluster groups
                 gasStationsCluster.clearLayers();
                 largeStoresCluster.clearLayers();
@@ -795,6 +921,57 @@
                 document.getElementById('recovery-result').innerHTML = `An unexpected error occurred. Please try again later.`;
             }
         }
+
+        // Function to perform the search
+        function searchCity() {
+            const query = document.getElementById('city-search').value.trim().toLowerCase();
+            if (query.length === 0) {
+                alert("Please enter a city name to search.");
+                return;
+            }
+
+            // Find matching markers with exact match
+            const matchingMarkers = evacuationCitiesCluster.getLayers().filter(marker => {
+                return marker.feature.properties.name.toLowerCase() === query;
+            });
+
+            if (matchingMarkers.length > 0) {
+                // Zoom to the first matching marker and open its popup
+                const firstMarker = matchingMarkers[0];
+                map.setView(firstMarker.getLatLng(), 15);
+                firstMarker.openPopup();
+            } else {
+                // Notify the user that the city was not found
+                alert('Evacuation city not found or it does not meet the distance criteria.');
+            }
+        }
+
+        // Optional: Enhance search with partial matching (Uncomment if desired)
+        /*
+        function searchCityPartial() {
+            const query = document.getElementById('city-search').value.trim().toLowerCase();
+            if (query.length === 0) {
+                alert("Please enter a city name to search.");
+                return;
+            }
+
+            // Find matching markers with partial matching
+            const matchingMarkers = evacuationCitiesCluster.getLayers().filter(marker => {
+                return marker.feature.properties.name.toLowerCase().includes(query);
+            });
+
+            if (matchingMarkers.length > 0) {
+                // Zoom to the first matching marker and open its popup
+                const firstMarker = matchingMarkers[0];
+                map.setView(firstMarker.getLatLng(), 15);
+                firstMarker.openPopup();
+            } else {
+                // Notify the user that the city was not found
+                alert('Evacuation city not found or it does not meet the distance criteria.');
+            }
+        }
+        */
+
     </script>
 </body>
 </html>
