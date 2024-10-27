@@ -126,12 +126,13 @@ def recovery():
     """
     if request.is_json:
         prompt = (
-        f"You are an expert disaster management assistant. "
-        f"For someone living in {county}, {state_new}, create a detailed and structured preparation "
-        f"plan for an approaching {disaster}. Your response should be extremely thorough, "
-        f"including bullet points and clear sections (e.g., Personal Preparation, Supplies Checklist, "
-        f"Evacuation Tips, and Family Safety Measures). Ensure proper grammar and a professional tone."
+            f"Create a highly detailed preparation plan for an approaching {disaster} "
+            f"in {county}, {state_new}. Use proper HTML formatting, including <ul> for bullet lists, "
+            f"<li> for list items, and <h3> or <h4> for headings. Your response should look like "
+            f"a cleanly formatted website section, with separate sections for Personal Preparation, "
+            f"Supplies Checklist, and Home Preparation."
         )
+
 
         """data_input = request.get_json()
         prompt = data_input.get('prompt')"""
