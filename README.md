@@ -4,7 +4,7 @@ Project Overview
 
 The Triple R Assessment project is designed to assess, prepare, and respond to potential crises or natural disasters. Using predictive models and data visualization, this project provides users with:
 
-	•	Base Risk Score Calculation for specific locations and disaster types.
+	•	Base Risk Score for specific locations and disaster types, calculated by custom machine learning model trained using FEMA data.
 	•	Predictive Risk Score Analysis for future risk projections.
 	•	Response Guidance with nearby resources like gas stations, stores, and evacuation cities.
 	•	Recovery Guidance, including recovery-related YouTube video resources.
