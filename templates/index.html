@@ -116,6 +116,7 @@
         .result {
             background-color: #ecf0f1;
             color: var(--text-color);
+            display: none;
         }
         .error {
             background-color: #f8d7da;
@@ -407,7 +408,9 @@
                     errorDiv.style.display = 'block';
 
                     // Clear any previous result
-                    document.getElementById("base-result").innerHTML = '';
+                    const resultDiv = document.getElementById("base-result");
+                    resultDiv.innerHTML = '';
+                    resultDiv.style.display = 'none';
 
                     // Remove existing markers and clusters
                     if (map) {
@@ -431,7 +434,10 @@
                         iconHtml = '<i class="fas fa-bomb" style="color: #e66565;"></i>'; // High risk
                     }
 
-                    document.getElementById("base-result").innerHTML = `${iconHtml} Base Risk Score: ${data.risk_score} (Calculated for ${disaster} in ${county}, ${state})`;
+                     // Show results
+                    const resultDiv = document.getElementById("base-result");
+                    resultDiv.innerHTML = `${iconHtml} Base Risk Score: ${data.risk_score} (Calculated for ${disaster} in ${county}, ${state})`;
+                    resultDiv.style.display = 'block';
 
                     // Hide error message if previously shown
                     const errorDiv = document.getElementById("base-error");
