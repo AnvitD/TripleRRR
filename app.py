@@ -7,6 +7,9 @@ from ibm_watsonx_ai import APIClient
 from ibm_watsonx_ai import Credentials
 from ibm_watsonx_ai.foundation_models import ModelInference
 
+# Import the YouTube API client
+from googleapiclient.discovery import build
+
 app = Flask(__name__)
 
 # Load the trained model
@@ -57,6 +60,35 @@ model_inference = ModelInference(
         "stop": [".\n", "\n\n"]
     }
 )
+
+YOUTUBE_API_KEY = 'AIzaSyDtzb6mxVfmVW2uWKNy1pGFUcKcgHrHZls'  # Ensure this environment variable is set
+YOUTUBE_API_SERVICE_NAME = "youtube"
+YOUTUBE_API_VERSION = "v3"
+
+
+def fetch_youtube_videos(query, max_results=10):
+    youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, developerKey=YOUTUBE_API_KEY)
+
+    search_response = youtube.search().list(
+        q=query + " Natural disaster recovery",
+        part="snippet",
+        type="video",
+        maxResults=max_results,
+        order="relevance"
+    ).execute()
+
+    videos = []
+    for item in search_response.get("items", []):
+        video = {
+            'title': item['snippet']['title'],
+            'description': item['snippet']['description'],
+            'video_id': item['id']['videoId'],
+            'thumbnail': item['snippet']['thumbnails']['medium']['url']
+        }
+        videos.append(video)
+
+    return videos
+
 
 @app.route('/', methods=['GET'])
 def index():
@@ -174,30 +206,73 @@ def response():
 def recovery():
     """
     Handle AJAX POST requests to get recovery guidance.
-    Expects JSON data with 'prompt'.
-    Returns JSON response with 'response' or 'error'.
+    Expects JSON data with 'state', 'county', and 'disaster'.
+    Returns JSON response with 'response', 'videos' or 'error'.
     """
     if request.is_json:
+        data_input = request.get_json()
+        state = data_input.get('state')
+        county = data_input.get('county')
+        disaster = data_input.get('disaster')
+
+        # Validate input presence
+        if not all([state, county, disaster]):
+            return jsonify({'error': 'Missing data: state, county, and disaster are required.'}), 400
+
+        # Normalize inputs for case-insensitive comparison
+        state_normalized = state.strip().lower()
+        county_normalized = county.strip().lower()
+
+        # Validate if the state exists
+        if state_normalized not in state_to_counties:
+            return jsonify({'error': f"Invalid state: '{state}'. Please enter a valid state."}), 400
+
+        # Validate if the county exists within the selected state
+        counties_in_state = [c.lower() for c in state_to_counties[state_normalized]]
+        if county_normalized not in counties_in_state:
+            return jsonify({'error': f"Invalid county: '{county}' does not belong to '{state}' or is not in dataset."}), 400
+
+        # Fetch the correctly cased state and county from the dataset
+        state_correct = next(s for s in states if s.lower() == state_normalized)
+        county_correct = next(c for c in state_to_counties[state_normalized] if c.lower() == county_normalized)
+
+        # Create a DataFrame for prediction
+        input_data = pd.DataFrame({
+            'State': [state_correct],
+            'County': [county_correct],
+            'DisasterType': [disaster]
+        })
+
+        # Predict base risk
+        try:
+            base_risk = risk_model.predict(input_data)[0]
+            base_risk = round(base_risk, 2)
+        except Exception as e:
+            return jsonify({'error': f'Error during prediction: {str(e)}'}), 500
+
+        # Create the prompt for the AI model
         prompt = (
             f"Create a highly detailed recovery plan for an approaching {disaster} "
-            f"in {county}, {state_new}. Use proper HTML formatting, including <ul> for bullet lists, "
+            f"in {county_correct}, {state_correct}. Use proper HTML formatting, including <ul> for bullet lists, "
             f"<li> for list items, and <h3> or <h4> for headings. Your response should look like "
             f"a cleanly formatted website section, with separate sections for Post-Disaster Damage Control, "
-            f"Post-Disaster Mental and Physichal Health Steps, and Links to Helpful Websites that aid with Disaster Rehabilitation."
+            f"Post-Disaster Mental and Physical Health Steps, and Links to Helpful Websites that aid with Disaster Rehabilitation."
         )
-
-        """data_input = request.get_json()
-        prompt = data_input.get('prompt')"""
-
-        if not prompt:
-            return jsonify({'error': 'Prompt is required.'}), 400
 
         try:
             # Use the watsonx.ai API to get the response
-            response = model_inference.generate_text(prompt)
-            return jsonify({'response': response})
+            recovery_response = model_inference.generate_text(prompt)
         except Exception as e:
-            return jsonify({'error': f'Error generating response: {str(e)}'}), 500
+            return jsonify({'error': f'Error generating recovery information: {str(e)}'}), 500
+
+        # Fetch YouTube videos related to disaster recovery
+        try:
+            disaster_query = f"{disaster} natural disaster recovery"
+            videos = fetch_youtube_videos(disaster_query)
+        except Exception as e:
+            return jsonify({'error': f'Error fetching YouTube videos: {str(e)}'}), 500
+
+        return jsonify({'response': recovery_response, 'videos': videos})
     else:
         return jsonify({'error': 'Request must be in JSON format.'}), 400
 
