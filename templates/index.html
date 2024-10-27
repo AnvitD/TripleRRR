@@ -57,7 +57,6 @@
             color: var(--primary-color);
             margin-bottom: 40px;
             position: relative;
-            font-size: 65px;
         }
         h2::after {
             content: '';
@@ -73,7 +72,6 @@
             margin-bottom: 20px;
             font-weight: 500;
             text-align: center;
-            font-size: 25px;
         }
         label {
             display: block;
@@ -82,7 +80,7 @@
             font-weight: 500;
         }
         select, input, textarea {
-            width: 97%;
+            width: 100%;
             padding: 14px;
             margin-top: 10px;
             border-radius: var(--border-radius);
@@ -123,7 +121,6 @@
         .result {
             background-color: #ecf0f1;
             color: var(--text-color);
-            display: none;
         }
         .error {
             background-color: #f8d7da;
@@ -186,10 +183,6 @@
             display: none;
             z-index: 1000;
         }
-        #disaster {
-            color: dimgray;
-            width: auto;
-        }
         /* Animations */
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(20px); }
@@ -217,6 +210,14 @@
                 flex-wrap: nowrap;
                 overflow-x: auto;
             }
+        }
+
+        /* Leaflet-Search Positioning */
+        .leaflet-control-search {
+            position: absolute;
+            top: 10px;
+            left: 50px;
+            z-index: 1000;
         }
 
         .leaflet-control-search input {
@@ -296,17 +297,6 @@
         <!-- Response Section -->
         <div id="response" class="section">
             <h3>Response Guidance</h3>
-            <form id="response-form">
-                <button type="button" onclick="getResponseGuidance()">Get Response Guidance</button>
-            </form>
-            <div class="result" id="response-result"></div>
-            <!-- Map Container -->
-            <div id="map"></div>
-        </div>
-
-        <!-- Response Section -->
-        <div id="response" class="section">
-            <h3>Response Guidance</h3>
             <div class="result" id="response-result"></div>
             <!-- Search Bar with Search Button -->
             <div class="search-container" style="margin-bottom: 10px;">
@@ -321,12 +311,6 @@
         <div id="recovery" class="section">
             <h3>Recovery Guidance</h3>
             <div class="result" id="recovery-result"></div>
-        </div>
-
-        <!-- Response Section -->
-        <div id="response" class="section">
-            <h3>Response Actions</h3>
-            <p>Immediate actions to take during a natural disaster.</p>
         </div>
     </div>
 
@@ -420,7 +404,7 @@
             const requestData = { state, county, disaster };
 
             // Show loading spinner
-            {#document.getElementById('loading-spinner').style.display = 'block';#}
+            document.getElementById('loading-spinner').style.display = 'block';
 
             try {
                 const response = await fetch('/predict', {
@@ -440,9 +424,7 @@
                     errorDiv.style.display = 'block';
 
                     // Clear any previous result
-                    const resultDiv = document.getElementById("base-result");
-                    resultDiv.innerHTML = '';
-                    resultDiv.style.display = 'none';
+                    document.getElementById("base-result").innerHTML = '';
 
                     // Remove existing markers and clusters
                     if (map) {
@@ -457,19 +439,16 @@
                     let iconHtml = "";
 
                     if (data.risk_score < 35) {
-                        iconHtml = '<i class="fas fa-exclamation-triangle" style="color: #63E6BE;"></i>'; // Low risk
+                        iconHtml = '<i class="fas fa-info-circle" style="color: #63E6BE;"></i>'; // Low risk
                     }
                     else if (data.risk_score < 65) {
                         iconHtml = `<i class="fas fa-exclamation-triangle" style="color: #FFD43B;"></i>`; // Medium risk
                     }
                     else {
-                        iconHtml = '<i class="fas fa-exclamation-triangle" style="color: #e66565;"></i>'; // High risk
+                        iconHtml = '<i class="fas fa-bomb" style="color: #e66565;"></i>'; // High risk
                     }
 
-                     // Show results
-                    const resultDiv = document.getElementById("base-result");
-                    resultDiv.innerHTML = `${iconHtml} Base Risk Score: ${data.risk_score} (Calculated for ${disaster} in ${county}, ${state})`;
-                    resultDiv.style.display = 'block';
+                    document.getElementById("base-result").innerHTML = `${iconHtml} Base Risk Score: ${data.risk_score} (Calculated for ${disaster} in ${county}, ${state})`;
 
                     // Hide error message if previously shown
                     const errorDiv = document.getElementById("base-error");
@@ -477,92 +456,6 @@
                     errorDiv.style.display = 'none';
 
                 }
-                const data = await response.json();
-
-                // Clear existing markers in the cluster groups
-                gasStationsCluster.clearLayers();
-                largeStoresCluster.clearLayers();
-                evacuationCitiesCluster.clearLayers();
-
-                // Iterate through the returned elements
-                data.elements.forEach(element => {
-                    let amenityType = '';
-                    let name = 'Unnamed';
-
-                    if (element.tags) {
-                        if (element.tags.name) {
-                            name = element.tags.name;
-                        }
-
-                        if (element.tags.amenity === 'gas_station') {
-                            amenityType = 'Gas Station';
-                        } else if (element.tags.shop === 'convenience') {
-                            amenityType = 'Convenience Store';
-                        } else if (element.tags.shop === 'supermarket') {
-                            amenityType = 'Supermarket';
-                        } else if (element.tags.shop === 'department_store') {
-                            amenityType = 'Department Store';
-                        } else if (element.tags.place === 'city' || element.tags.place === 'town' || element.tags.place === 'village') {
-                            amenityType = 'Evacuation City';
-                        }
-                    }
-
-                    // Exclude markers with name 'Unnamed' except for evacuation cities
-                    if (amenityType !== 'Evacuation City' && name === 'Unnamed') {
-                        return; // Skip this element
-                    }
-
-                    // Determine the coordinates
-                    let latitude = element.lat;
-                    let longitude = element.lon;
-
-                    // For ways and relations, use the center
-                    if (!latitude || !longitude) {
-                        if (element.center) {
-                            latitude = element.center.lat;
-                            longitude = element.center.lon;
-                        } else {
-                            // Skip if no coordinates are available
-                            return;
-                        }
-                    }
-
-                    // Create a popup content
-                    const destination = `${latitude},${longitude}`;
-                    const mapsLink = `<a href="https://www.google.com/maps/dir/?api=1&destination=${destination}" target="_blank">Get Directions</a>`;
-                    const popupContent = `<strong>${name}</strong><br>${amenityType}<br>${mapsLink}`;
-
-                    // Add markers to respective cluster groups
-                    if (amenityType === 'Gas Station' || amenityType === 'Convenience Store') {
-                        L.marker([latitude, longitude], { icon: gasStationIcon })
-                            .bindPopup(popupContent)
-                            .addTo(gasStationsCluster);
-
-                    } else if (amenityType === 'Supermarket' || amenityType === 'Department Store') {
-                        L.marker([latitude, longitude], { icon: largeStoreIcon })
-                            .bindPopup(popupContent)
-                            .addTo(largeStoresCluster);
-
-                    } else if (amenityType === 'Evacuation City') {
-                        const marker = L.marker([latitude, longitude], { icon: cityIcon })
-                            .bindPopup(popupContent)
-                            .addTo(evacuationCitiesCluster);
-
-                        // Assign a 'name' property to the marker for searching
-                        marker.feature = {
-                            properties: {
-                                name: name
-                            }
-                        };
-                    }
-                });
-
-                // Add layer controls if not already added
-                if (!layerControlsAdded) {
-                    addLayerControls();
-                    layerControlsAdded = true;
-                }
-
             } catch (error) {
                 console.error('Error calculating base risk:', error);
                 const errorDiv = document.getElementById("base-error");
@@ -578,11 +471,10 @@
                     largeStoresCluster.clearLayers();
                     evacuationCitiesCluster.clearLayers();
                 }
+            } finally {
+                // Hide loading spinner
+                document.getElementById('loading-spinner').style.display = 'none';
             }
-            {#finally {#}
-            {#    // Hide loading spinner#}
-            {#    document.getElementById('loading-spinner').style.display = 'none';#}
-            {# }#}
         }
 
         // Function to display the map and fetch nearby amenities
@@ -674,18 +566,8 @@
                     }
                 });
 
-        // Function to add layer controls for gas stations, large stores, and evacuation cities
-        function addLayerControls() {
-            const overlays = {
-                "Gas Stations & Convenience Stores": gasStationsCluster,
-                "Large Stores": largeStoresCluster,
-                "Evacuation Cities": evacuationCitiesCluster
-            };
+                const data = await response.json();
 
-            L.control.layers(null, overlays, { collapsed: false, position: 'topright' }).addTo(map);
-        }
-
-        // Function to calculate predictive risk score
                 // Clear existing markers in the cluster groups
                 gasStationsCluster.clearLayers();
                 largeStoresCluster.clearLayers();
@@ -751,9 +633,16 @@
                             .addTo(largeStoresCluster);
 
                     } else if (amenityType === 'Evacuation City') {
-                        L.marker([latitude, longitude], { icon: cityIcon })
+                        const marker = L.marker([latitude, longitude], { icon: cityIcon })
                             .bindPopup(popupContent)
                             .addTo(evacuationCitiesCluster);
+
+                        // Assign a 'name' property to the marker for searching
+                        marker.feature = {
+                            properties: {
+                                name: name
+                            }
+                        };
                     }
                 });
 
@@ -762,6 +651,7 @@
                     addLayerControls();
                     layerControlsAdded = true;
                 }
+
             } catch (error) {
                 console.error('Error fetching nearby amenities:', error);
                 // Optionally, display an error message to the user
