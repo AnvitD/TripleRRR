@@ -121,7 +121,7 @@ def recovery():
     Returns JSON response with 'response' or 'error'.
     """
     if request.is_json:
-        prompt = "For somone who lives in the state:" + state + " and county: " + county + "provide an extremely exhaustive and detailed bulleted list for how they should prepare for a " + disaster + " that is approaching them. Make the list very long and detailed, use proper grammar and be very adamant."
+        prompt = "For someone who lives in the state:" + state + " and county: " + county + "provide an extremely exhaustive and detailed bulleted list for how they should prepare for a " + disaster + " that is approaching them. Make the list very long and detailed, use proper grammar and be very adamant."
         """data_input = request.get_json()
         prompt = data_input.get('prompt')"""
 

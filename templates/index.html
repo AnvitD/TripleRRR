@@ -131,10 +131,15 @@
             </div>
 
             <!-- Predictive Risk Score Form -->
+            <style>
+                #time {
+                    width: 875px;
+                }
+            </style>
             <div id="predictive" class="section">
                 <form id="predictive-risk-form">
                     <label for="time">Future Period (Years):</label>
-                    <input type="range" id="time" name="time" min="0" max="50" oninput="updateTimeValue(this.value)">
+                    <input type="range" id="time" name="time" min="0" max="50"  value="0" oninput="updateTimeValue(this.value)">
                     <span id="time-value">0</span> years
 
                     <button type="button" onclick="calculatePredictiveRisk()">Calculate Predictive Risk</button>
@@ -182,15 +187,16 @@
 
         // Define custom icons
         const gasStationIcon = L.icon({
-            iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png', // Replace with your preferred icon
-            iconSize: [25, 25],
+
+            iconUrl: 'https://i.im.ge/2024/10/27/k8uk39.gas-station.png',
+            iconSize: [50, 50],
             iconAnchor: [12, 25],
             popupAnchor: [0, -25]
         });
 
         const largeStoreIcon = L.icon({
-            iconUrl: 'https://cdn-icons-png.flaticon.com/512/2907/2907762.png', // Replace with your preferred icon
-            iconSize: [25, 25],
+            iconUrl: 'https://i.im.ge/2024/10/27/k8uVTF.supermarket.png',
+            iconSize: [50, 50],
             iconAnchor: [12, 25],
             popupAnchor: [0, -25]
         });
