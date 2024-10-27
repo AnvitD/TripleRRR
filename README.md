@@ -1,4 +1,4 @@
-# Triple R Assessment
+Triple R Assessment
 
 Project Overview
 
