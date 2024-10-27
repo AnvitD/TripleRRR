@@ -50,7 +50,11 @@ model_inference = ModelInference(
     api_client=client,
     project_id="d0eaa248-e010-412c-8cf8-ba046b28f236",
     params={
-        "max_new_tokens": 100
+        "max_new_tokens": 1000,
+        "temperature": 0.7,
+        "top_k": 50,
+        "top_p": 0.9,
+        "stop": [".\n", "\n\n"]
     }
 )
 
@@ -67,11 +71,12 @@ def predict():
     Returns JSON response with 'risk_score' or 'error'.
     """
     if request.is_json:
-        global state, county, disaster
+        global state, county, disaster, state_new
         data_input = request.get_json()
         state = data_input.get('state')
         county = data_input.get('county')
         disaster = data_input.get('disaster')
+        state_new = state
 
         # Validate input presence
         if not all([state, county, disaster]):
@@ -113,6 +118,27 @@ def predict():
     else:
         return jsonify({'error': 'Request must be in JSON format.'}), 400
 
+@app.route('/response', methods=['POST'])
+def response():
+    """
+    Handle AJAX POST requests to get response guidance.
+    Returns JSON response with 'response' or 'error'.
+    """
+    prompt = (
+        f"Create a highly detailed immediate action plan for an ongoing {disaster} "
+        f"in {county}, {state_new}. Use proper HTML formatting, including <ul> for bullet lists, "
+        f"<li> for list items, and <h3> or <h4> for headings. Your response should look like "
+        f"a cleanly formatted website section, with separate sections for Evacuation Procedures, "
+        f"Emergency Contacts, and Safety Measures."
+    )
+
+    try:
+        # Use the watsonx.ai API to get the response
+        response = model_inference.generate_text(prompt)
+        return jsonify({'response': response})
+    except Exception as e:
+        return jsonify({'error': f'Error generating response: {str(e)}'}), 500
+
 @app.route('/recovery', methods=['POST'])
 def recovery():
     """
@@ -121,7 +147,14 @@ def recovery():
     Returns JSON response with 'response' or 'error'.
     """
     if request.is_json:
-        prompt = "For someone who lives in the state:" + state + " and county: " + county + "provide an extremely exhaustive and detailed bulleted list for how they should prepare for a " + disaster + " that is approaching them. Make the list very long and detailed, use proper grammar and be very adamant."
+        prompt = (
+            f"Create a highly detailed recovery plan for an approaching {disaster} "
+            f"in {county}, {state_new}. Use proper HTML formatting, including <ul> for bullet lists, "
+            f"<li> for list items, and <h3> or <h4> for headings. Your response should look like "
+            f"a cleanly formatted website section, with separate sections for Post-Disaster Damage Control, "
+            f"Post-Disaster Mental and Physichal Health Steps, and Links to Helpful Websites that aid with Disaster Rehabilitation."
+        )
+
         """data_input = request.get_json()
         prompt = data_input.get('prompt')"""
 
