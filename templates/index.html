@@ -158,13 +158,19 @@
             <p>Get customized recovery guidance by asking a question.</p>
             <form id="recovery-form">
                 <div class = "invisible-textbox">
-                    <textarea id="prompt" name="prompt" rows="4" outline="none"></textarea>
+                    <textarea id="prompt" name="prompt" rows="4" display="none"></textarea>
                 </div>
                 <button type="button" onclick="getRecoveryGuidance()">Get Guidance</button>
             </form>
             <div class="result" id="recovery-result"></div>
         </div>
     </div>
+
+    <style>
+        .invisible-textbox {
+            display: none; /* Hide the textbox while keeping it accessible */
+        }
+    </style>
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
