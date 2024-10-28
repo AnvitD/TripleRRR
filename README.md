@@ -88,6 +88,7 @@ The project utilizes APIs for map location data:
 
 	•	Nominatim API: For obtaining latitude and longitude of user-selected locations.
 	•	Overpass API: For querying nearby resources (e.g., gas stations, stores).
+ 	•	YouTube Data API v3: For dynamically retrieving and displaying recovery-related YouTube videos based on the selected natural disaster type.
 
 Usage Guide
 
